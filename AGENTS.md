@@ -196,3 +196,4 @@ Before claiming a change is done:
 - Core OS changes touch `wasp/`, drivers, and/or board `watch.py.in` / manifests; optional apps usually stay under `apps/` or `watch_faces/`.
 - Do not treat experimental Grok cross-session memory as a substitute for this file; keep durable project facts here or in committed docs.
 - Official docs site may be more polished than in-tree RST; when they disagree on install steps, prefer `docs/install.rst` for this tree.
+- Git may print `unable to write credential store: Device or resource busy` when talking to the LAN Gitea remote from this container. That is a known issue with the bind-mounted `~/.git-credentials` file; auth still works. **Safe to ignore** if the git operation otherwise succeeds.
