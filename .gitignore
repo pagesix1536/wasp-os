@@ -14,3 +14,7 @@ wasp/apps/user
 wasp/appregistry.py
 .idea
 .vscode
+
+# Simulator / local runtime state (apps write these into the project CWD)
+Morse.txt
+alarms.txt
