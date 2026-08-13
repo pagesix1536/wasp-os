@@ -14,17 +14,18 @@ Project rules for AI agents and humans working in this repository.
 - App guide: https://wasp-os.readthedocs.io/en/latest/appguide.html  
 - Install guide: https://wasp-os.readthedocs.io/en/latest/install.html  
 
-## This fork (cmiller / Gitea)
+## This fork (cmiller / GitHub)
 
-This working tree is a **personal fork** for local development, not a direct push target for upstream GitHub.
+This working tree is a **personal fork** for local development. Push day-to-day work to the personal GitHub remote; pull official wasp-os updates from `upstream` only.
 
 | Remote | URL | Role |
 |--------|-----|------|
-| `origin` | `http://192.168.1.16:30008/cmiller/wasp-os.git` | Personal Gitea fork (push here) |
+| `origin` | `git@github.com:pagesix1536/wasp-os.git` | Personal GitHub fork (push here) |
 | `upstream` | `https://github.com/wasp-os/wasp-os.git` | Official wasp-os (fetch / merge only) |
+| `gitea` | `http://192.168.1.16:30008/cmiller/wasp-os.git` | Optional legacy home Gitea (historical; not primary) |
 
 ```sh
-git push                  # → origin (Gitea)
+git push                  # → origin (GitHub: pagesix1536/wasp-os)
 git fetch upstream
 git merge upstream/master # when pulling official updates
 ```
@@ -218,26 +219,37 @@ These are **local policy** for this fork / laptop setup. Prefer them over invent
 - Primary laptop: **Fedora** (current; e.g. Fedora 44+), often **Wayland**.
 - Official wasp release tags are old (~2021); this tree tracks **current git** (with occasional upstream activity). Still treat the project as **toolchain-sensitive** (MicroPython, SoftDevice, SDL sim).
 
-### Preferred toolchain isolation: project Docker (not host `dnf`)
+### Active PineTime (on-device work)
 
-- **Do prefer** the project’s Docker/Podman env (`make build-docker-image` / `make run-docker-image`, or an equivalent Podman invocation) for `make sim`, `make check`, and firmware builds.
-- **Reason:** installing the full stack from Fedora repos risks **newer** Python / SDL / `arm-none-eabi-gcc` than the project expects; containerizing on **Ubuntu 24.04** (as in `tools/docker/Dockerfile`) reduces that skew.
-- **Caveat:** the Docker image pins Ubuntu packages, **not** the historical Arm GNU-RM **10-2020-q4** binary named in the docs. If firmware builds fail in a toolchain-looking way, fall back to that official tarball before deep debugging.
-- Fedora practical notes: may need **Podman** instead of Docker CE; **SELinux** volume labels (`:z`/`:Z`); **X11/XWayland** so the SDL simulator window can appear; BLE/`wasptool` still depends on the **host** Bluetooth stack.
+Owner has multiple PineTimes; **only this one** is the development target unless they say otherwise:
 
-### Keep `grok-dev-env` generic
+| Item | Value |
+|------|--------|
+| BLE address | Prefer **re-scan** (random; changes with firmware). Was `…:7D` on InfiniTime; **PineDFU** was `…:7E` after reloader |
+| Firmware | **git master build** (`build-pinetime/micropython.zip`, OTA 2026-08-13) — supersedes stock 0.4.1 OS image |
+| Prior OS | InfiniTime 1.15.0 → stock wasp 0.4.1 → current-tree micropython |
+| Bootloader | **wasp-bootloader** (via official `reloader-mcuboot.zip` 0.4.1; not re-flashed on master OTA) |
+| wasptool hint | Re-scan for device name; pass `--device` / MAC. Needs `tools/pynus` submodule |
 
-- `~/git/grok-dev-env` is a **generic** Grok/Podman coding shell (git, Python basics, Grok CLI). It must **not** be turned into a wasp-specialized image (no Arm toolchain, SDL stack, or BlueZ piled into that Dockerfile for this one project).
-- Using Grok **on the host** (or only for edit/review) for wasp work is expected; heavy build/sim belongs in **wasp Docker** or a deliberate host install — not grok-dev-env.
-- From inside grok-dev-env there is **no host hardware access** (no real display/BLE as seen by the laptop). Do not assume `make sim` or wasptool work there without extra plumbing the owner has declined to add.
+**OTA tooling note:** Phone Gadgetbridge flaky for this unit. Prefer `tools/bleak_legacy_dfu.py` + `.venv-dfu` (bleak). Stock `tools/ota-dfu` (gatttool) is unreliable on modern Fedora BlueZ. Zips for stock install live under `firmware-recovery/` (gitignored if preferred; local only).
 
-### Split of concerns
+Other watches may exist in the house; keep them distant/off so scans stay unambiguous.
+
+### Development model (host + one project container)
+
+Grok runs **on the host OS** (not inside a generic coding container). That gives the agent real visibility into host XWayland/display, Bluetooth, Podman, and the ability to start project containers.
 
 | Activity | Where |
 |----------|--------|
-| Edit apps, design, review, git to Gitea | Host and/or Grok (generic) |
-| `make sim`, `make check`, board firmware builds | **Project Docker** (preferred) or host if intentionally set up |
+| Edit MicroPython apps (NeoVIM + Grok), design, review, git → Gitea | **Host OS** |
+| `make sim`, `make check`, board firmware builds | **Project Ubuntu container only** (Podman/Docker) |
 | Flash / REPL / OTA / `--rtc` | Host BLE + `wasptool`, and/or phone (Gadgetbridge) |
+
+- **Do not** use `~/git/grok-dev-env` (or any other generic Grok/dev shell image) for this project. It is out of scope and too limiting (no useful host display/BLE/Podman control for wasp work).
+- **Only** container for wasp-os: the project image from `tools/docker/` (`make build-docker-image` / `make run-docker-image`, or equivalent Podman). Use it for simulator, tests, and firmware builds — not as the editor/REPL for day-to-day coding.
+- **Reason for isolation:** installing the full stack from Fedora repos risks **newer** Python / SDL / `arm-none-eabi-gcc` than the project expects; containerizing on **Ubuntu 24.04** (as in `tools/docker/Dockerfile`) reduces that skew.
+- **Caveat:** the Docker image pins Ubuntu packages, **not** the historical Arm GNU-RM **10-2020-q4** binary named in the docs. If firmware builds fail in a toolchain-looking way, fall back to that official tarball before deep debugging.
+- Fedora practical notes: use **Podman** (often instead of Docker CE); **SELinux** volume labels (`:z`/`:Z`); **X11/XWayland** so the SDL simulator window can appear; BLE/`wasptool` still depends on the **host** Bluetooth stack.
 
 ## Agent working notes
 
@@ -248,4 +260,4 @@ These are **local policy** for this fork / laptop setup. Prefer them over invent
 - Do not treat experimental Grok cross-session memory as a substitute for this file; keep durable project facts here or in committed docs.
 - Official docs site may be more polished than in-tree RST; when they disagree on install steps, prefer `docs/install.rst` for this tree.
 - Git may print `unable to write credential store: Device or resource busy` when talking to the LAN Gitea remote from a container with bind-mounted `~/.git-credentials`. Known issue; auth still works. **Safe to ignore** if the git operation otherwise succeeds.
-- When continuing setup conversations: owner was about to leave the **grok-dev-env** container and run Grok **on the host** to plan Docker/Podman wasp toolchain setup for new Python apps. Next useful work is host-side Docker/Podman + sim, not bloating grok-dev-env.
+- Setup focus: get **host Podman + project Ubuntu image** working for `make check` / `make sim` / firmware builds. Edit apps on the host; never route wasp workflow through grok-dev-env.
