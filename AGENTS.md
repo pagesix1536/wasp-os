@@ -64,6 +64,7 @@ Other boards exist (`p8`, `k9`, `dsd6`, `nitrogen`) but default assumptions here
 | `reloader/` | Reloader / recovery image |
 | `micropython/` | MicroPython port (submodule) frozen into firmware |
 | `docs/` | Sphinx docs (install, app guide, contributing, API) |
+| `docs/fork/` | **Fork Markdown** (overview, tooling, apps) — not Sphinx |
 | `res/` | Icons, screenshots, media |
 | `build-pinetime/` | Build outputs for PineTime (after a successful build) |
 | `Makefile` | Submodules, softdevice, board firmware, sim, tests, docs |
@@ -198,12 +199,18 @@ Before claiming a change is done:
 
 | Doc | Content |
 |-----|---------|
-| `README.rst` | Intro, getting started, community |
-| `docs/install.rst` | Build, flash, prerequisites |
+| `README.rst` | Intro, getting started, community (upstream stock) |
+| `docs/fork/README.md` | **This fork**: remotes, intent, quick start (Markdown) |
+| `docs/fork/tooling.md` | Helper scripts: Podman sim, build/flash, bleak DFU |
+| `docs/fork/apps.md` | Enabled apps (`wasp.toml`) + starter for new apps |
+| `AGENTS.md` | This file — agent/human project constitution |
+| `docs/install.rst` | Build, flash, prerequisites (upstream Sphinx) |
 | `docs/appguide.rst` | Writing apps (lifecycle, APIs) |
 | `docs/contributing.rst` | Style, DCO, review process |
 | `docs/wasp.rst` | Reference / API |
 | `TODO.rst` / `docs/TODO.rst` | Roadmap |
+
+Fork-specific documentation is **Markdown under `docs/fork/`** only (not wired into Sphinx/Read the Docs). Prefer that tree over editing upstream RST.
 
 ## Workspace goals & environment (owner decisions)
 
