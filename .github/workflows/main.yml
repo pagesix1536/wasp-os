@@ -1,14 +1,37 @@
 name: wasp-os binary distribution
 
+# ---------------------------------------------------------------------------
+# DISABLED on this personal fork (pagesix1536/wasp-os).
+#
+# Reasons:
+#   - Nordic SoftDevice download in CI returns HTTP 403; the job always fails.
+#   - This fork only targets PineTime and builds/flashes locally (Podman +
+#     tools/build-flash-pinetime.sh). Multi-board dist (p8/k9/…) is not needed.
+#
+# The full job body is intentionally left intact so it can be re-enabled later.
+#
+# To re-enable automatic CI:
+#   1. Restore the original `on:` triggers below (push / pull_request / dispatch).
+#   2. Remove the job-level `if: false` line under `jobs.build`.
+#   3. Commit and push (or re-enable via GitHub UI if you disabled it there).
+#
+# Original triggers (for restore):
+#   on:
+#     push:
+#       branches: [ master ]
+#     pull_request:
+#       branches: [ master ]
+#     workflow_dispatch:
+# ---------------------------------------------------------------------------
+
+# No automatic runs. workflow_dispatch kept so this remains a valid workflow
+# file; the job is still skipped via `if: false` even if started manually.
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
   workflow_dispatch:
 
 jobs:
   build:
+    if: false  # hard-disable; remove this line when re-enabling
     runs-on: ubuntu-24.04
 
     steps:

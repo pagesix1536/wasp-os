@@ -12,6 +12,13 @@ Scripts and workflows added for day-to-day PineTime work on **Fedora + Podman + 
 | [`tools/wasptool`](../../tools/wasptool) | Stock BLE REPL / RTC / file transfer (host; needs `tools/pynus`) |
 | `make build-docker-image` | Build `wasp-os/wasp-os-dev:0.1.0` (Ubuntu 24.04 toolchain) |
 
+### GitHub Actions on this fork
+
+| Workflow | Status on this fork |
+|----------|---------------------|
+| `.github/workflows/main.yml` (binary distribution) | **Disabled** — SoftDevice Nordic download fails in CI (403); multi-board dist not needed for PineTime-only local builds. File kept for later re-enable (see comments in the workflow). |
+| `.github/workflows/sim.yml` (simulator tests) | Still enabled — cheap `make check` on push. |
+
 Environment overrides used by the helpers:
 
 | Variable | Default | Meaning |
