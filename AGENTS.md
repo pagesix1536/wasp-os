@@ -22,7 +22,6 @@ This working tree is a **personal fork** for local development. Push day-to-day 
 |--------|-----|------|
 | `origin` | `git@github.com:pagesix1536/wasp-os.git` | Personal GitHub fork (push here) |
 | `upstream` | `https://github.com/wasp-os/wasp-os.git` | Official wasp-os (fetch / merge only) |
-| `gitea` | `http://192.168.1.16:30008/cmiller/wasp-os.git` | Optional legacy home Gitea (historical; not primary) |
 
 ```sh
 git push                  # → origin (GitHub: pagesix1536/wasp-os)
@@ -241,7 +240,7 @@ Grok runs **on the host OS** (not inside a generic coding container). That gives
 
 | Activity | Where |
 |----------|--------|
-| Edit MicroPython apps (NeoVIM + Grok), design, review, git → Gitea | **Host OS** |
+| Edit MicroPython apps (NeoVIM + Grok), design, review, git → GitHub | **Host OS** |
 | `make sim`, `make check`, board firmware builds | **Project Ubuntu container only** (Podman/Docker) |
 | Flash / REPL / OTA / `--rtc` | Host BLE + `wasptool`, and/or phone (Gadgetbridge) |
 
@@ -259,5 +258,5 @@ Grok runs **on the host OS** (not inside a generic coding container). That gives
 - Core OS changes touch `wasp/`, drivers, and/or board `watch.py.in` / manifests; optional apps usually stay under `apps/` or `watch_faces/`.
 - Do not treat experimental Grok cross-session memory as a substitute for this file; keep durable project facts here or in committed docs.
 - Official docs site may be more polished than in-tree RST; when they disagree on install steps, prefer `docs/install.rst` for this tree.
-- Git may print `unable to write credential store: Device or resource busy` when talking to the LAN Gitea remote from a container with bind-mounted `~/.git-credentials`. Known issue; auth still works. **Safe to ignore** if the git operation otherwise succeeds.
+- Prefer SSH for `origin` (`git@github.com:pagesix1536/wasp-os.git`). HTTPS + credential-helper quirks are less relevant for this host setup.
 - Setup focus: get **host Podman + project Ubuntu image** working for `make check` / `make sim` / firmware builds. Edit apps on the host; never route wasp workflow through grok-dev-env.
