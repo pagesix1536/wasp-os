@@ -4,7 +4,8 @@ import importlib
 import os
 from PIL import Image
 
-EXCLUDE = ('NotificationApp', 'PagerApp', 'TemplateApp', 'FacesApp', 'ReadMeApp')
+# ClockUsApp is fork-only (docs in docs/fork/); skip upstream screenshot/README/Sphinx checks.
+EXCLUDE = ('NotificationApp', 'PagerApp', 'TemplateApp', 'FacesApp', 'ReadMeApp', 'ClockUsApp')
 
 def test_screenshot(constructor):
     if f'{constructor.__name__}' in EXCLUDE or f'{constructor.__module__}'.startswith('apps.user.'):

@@ -60,9 +60,9 @@ Last boot banner before UI. Usually:
 
 **Recover:** long-press reboot; if repeatable, lean `auto_load` and OTA. Agent can BLE Ctrl-C, inspect `quick_ring` / `launcher_ring` / `mem_free` / `hasattr(system,'sleep_at')`.
 
-### `WeekClock` needs `Clock`
+### `WeekClock` needs `Clock` (if re-enabled)
 
-`WeekClockApp` subclasses `ClockApp` (`from apps.user.clock import …`). Always freeze **both** faces in `wasp.toml`.
+This fork’s default face is sole `clock_us.py` (self-contained). If you re-add stock `WeekClockApp`, it subclasses `ClockApp` (`from apps.user.clock import …`) — freeze **both** `week_clock` and `clock` in `wasp.toml` or boot hangs on `main.py`.
 
 ### Inverted / washed-out display after a crash
 

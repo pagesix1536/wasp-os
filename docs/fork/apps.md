@@ -36,8 +36,9 @@ System apps **Settings** and **Software** always appear on the launcher.
 
 | File | Default? |
 |------|----------|
-| `watch_faces/clock.py` | No — required dependency of WeekClock |
-| `watch_faces/week_clock.py` | **Yes** (`default = true`) |
+| `watch_faces/clock_us.py` | **Yes** — US 12h + `Wed, Aug 13` date (issue #1); sole face |
+
+Stock `clock.py` / `week_clock.py` are not frozen. The Faces picker (`apps/faces.py`) is also not enabled — with only one face there is nothing to switch.
 
 Quick on-device test without rebuild:
 

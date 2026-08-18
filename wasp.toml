@@ -24,10 +24,8 @@ auto_load = true
 [[app]]
 file = 'apps/memory.py'
 
-# WeekClockApp subclasses ClockApp — both must be frozen or boot hangs on main.py
+# Sole watch face for this fork (issue #1). Self-contained — no clock.py dependency.
+# Faces picker (apps/faces.py) is intentionally not enabled; only one face ships.
 [[watchface]]
-file = 'watch_faces/clock.py'
-
-[[watchface]]
-file = 'watch_faces/week_clock.py'
+file = 'watch_faces/clock_us.py'
 default = true
