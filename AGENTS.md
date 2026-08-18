@@ -203,6 +203,7 @@ Before claiming a change is done:
 | `docs/fork/README.md` | **This fork**: remotes, intent, quick start (Markdown) |
 | `docs/fork/tooling.md` | Helper scripts: Podman sim, build/flash, bleak DFU |
 | `docs/fork/apps.md` | Enabled apps (`wasp.toml`) + starter for new apps |
+| `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap gotchas, BLE debug |
 | `AGENTS.md` | This file — agent/human project constitution |
 | `docs/install.rst` | Build, flash, prerequisites (upstream Sphinx) |
 | `docs/appguide.rst` | Writing apps (lifecycle, APIs) |
@@ -215,6 +216,12 @@ Fork-specific documentation is **Markdown under `docs/fork/`** only (not wired i
 ## Workspace goals & environment (owner decisions)
 
 These are **local policy** for this fork / laptop setup. Prefer them over inventing a new workflow.
+
+### How the owner learns (explanations)
+
+- Prefer **analogies** when something is confusing — especially **cars / engines / automotive**, and also **Linux**, general **PC**, or other everyday systems the owner already knows.
+- Aim for “same idea as X,” not a forced 1-to-1 mapping of every detail.
+- Keep this in mind for RAM/heap, freesteading vs freeze, BLE/OTA, containers, etc.
 
 ### Near-term goal
 
@@ -257,13 +264,69 @@ Grok runs **on the host OS** (not inside a generic coding container). That gives
 - **Caveat:** the Docker image pins Ubuntu packages, **not** the historical Arm GNU-RM **10-2020-q4** binary named in the docs. If firmware builds fail in a toolchain-looking way, fall back to that official tarball before deep debugging.
 - Fedora practical notes: use **Podman** (often instead of Docker CE); **SELinux** volume labels (`:z`/`:Z`); **X11/XWayland** so the SDL simulator window can appear; BLE/`wasptool` still depends on the **host** Bluetooth stack.
 
+## Operational playbook (read this in new sessions)
+
+Full write-up: [`docs/fork/operations.md`](docs/fork/operations.md). Summary for agents:
+
+### Heap / “frozen” vs registered
+
+- PineTime **64 KB RAM**; after SoftDevice + MicroPython + UI, **free heap is often only ~8–12 KB**.
+- **Frozen** = code in firmware flash (cheap). **Registered** = live Python instance on the heap (costs RAM until removed + GC).
+- **`--exec` + `register()`** = preferred **live test** (docs appguide). Survives until reboot only.
+- **`wasp.toml` + build + OTA** = ship lasting apps. Do **not** rely on SPI `apps/foo.py` freestead + Software: frozen package `apps` only has `system`/`user`, so `import apps.foo` fails.
+- `auto_load` / `quick_ring` = register at boot (always pay heap). Omit both = frozen but enable via Software when needed.
+- **Step counter** is always quick-ring from core `register_defaults()` (not toml). Settings/Software always launcher.
+
+### Commands (host BLE; one watch → omit `--device`)
+
+```sh
+# Live test (preferred while developing)
+./tools/wasptool --exec apps/myapp.py --eval "wasp.system.register(MyApp())"
+
+# REPL / heap / DFU / OTA
+./tools/wasptool --console          # then wasp.system.run() after Ctrl-C
+./tools/wasptool --memfree
+./tools/wasptool --bootloader       # or hold side button ~5s → PineDFU
+./tools/build-flash-pinetime.sh build
+./tools/build-flash-pinetime.sh flash
+```
+
+SoftDevice Nordic download often **403** — helper copies from bootloader submodule. Prefer `bleak_legacy_dfu` / `build-flash-pinetime.sh`, not gatttool.
+
+### Boot / display gotchas
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| Stuck UI text **`main.py`**, no touch | `schedule()`/`register_defaults()` died: missing face dependency or **OOM** mid-autoload | Lean `auto_load`; ensure `week_clock` **and** `clock` in toml; OTA; or BLE recover |
+| `ImportError: apps.user.clock` | `WeekClockApp` subclasses `ClockApp` but `clock.py` not frozen | Always list both watch faces in `wasp.toml` |
+| White bg / dark glyphs / washed color | **CrashApp** left ST7789 invert wrong | Reboot, or `wasp.watch.display.invert(True)` then redraw |
+| `AttributeError: sleep_at` | Half-init: `secondary_init` aborted before setting `sleep_at` | Reboot, or set `wasp.system.sleep_at = wasp.watch.rtc.uptime + 90` then `schedule()` |
+| `--exec` `MemoryError` | Not enough contiguous heap to paste-compile | Reboot; disable auto-load apps; free launcher instances; or freeze |
+
+### BLE / Gadgetbridge expectations
+
+- wasp ≈ **NUS-centric** (few GATT services). InfiniTime exposes many more — GB icons stay thin on wasp.
+- Music **transport** often works; **track metadata / weather refresh** phone→watch is flaky — don’t treat as reliable.
+- Keep other house watches powered off during scans.
+
+### Simulator
+
+- Use `./tools/run-sim-podman.sh`. Agent-launched sim may freeze input — prefer owner terminal.
+- Sim imports `wasp/apps/user/` copies from toml; restart sim after editing enabled apps.
+- Free-RAM display often **Not supported** in sim.
+
+### Tracking ideas
+
+- Use **GitHub Issues** on this fork (e.g. US 12h face: issue #1). Labels like `enhancement` / `bug`. Skip Projects/Milestones unless asked.
+
 ## Agent working notes
 
 - Default device context is **PineTime** (`BOARD=pinetime`).
-- Prefer **simulator + `make check`** over flashing for everyday Python app work.
+- Prefer **`--exec` for on-watch app iteration**; simulator for UI layout; **OTA freeze** when shipping.
+- Prefer **simulator + `make check`** over flashing for everyday Python UI work when hardware isn’t needed.
 - Custom feature sets go through **`wasp.toml`**, not hard-coding every app into the board manifest by hand.
 - Core OS changes touch `wasp/`, drivers, and/or board `watch.py.in` / manifests; optional apps usually stay under `apps/` or `watch_faces/`.
-- Do not treat experimental Grok cross-session memory as a substitute for this file; keep durable project facts here or in committed docs.
-- Official docs site may be more polished than in-tree RST; when they disagree on install steps, prefer `docs/install.rst` for this tree.
-- Prefer SSH for `origin` (`git@github.com:pagesix1536/wasp-os.git`). HTTPS + credential-helper quirks are less relevant for this host setup.
-- Setup focus: get **host Podman + project Ubuntu image** working for `make check` / `make sim` / firmware builds. Edit apps on the host; never route wasp workflow through grok-dev-env.
+- Do not treat experimental Grok cross-session memory as a substitute for this file or `docs/fork/`; keep durable project facts here.
+- Official docs site may be more polished than in-tree RST; when they disagree on install steps, prefer `docs/install.rst` for this tree — but prefer **`docs/fork/`** for fork ops.
+- Prefer SSH for `origin` (`git@github.com:pagesix1536/wasp-os.git`).
+- Setup focus: **host Podman + project Ubuntu image** for `make check` / `make sim` / firmware builds. Edit on the host; never route wasp workflow through grok-dev-env.

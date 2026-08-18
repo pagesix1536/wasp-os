@@ -56,6 +56,7 @@ Details:
 
 - [tooling.md](tooling.md) — helper scripts, Podman, DFU, wasptool
 - [apps.md](apps.md) — enabled apps, how to add new ones
+- [operations.md](operations.md) — **ops playbook**: `--exec`, OTA, boot/heap gotchas, BLE debug (also summarized in `AGENTS.md`)
 
 ## Quick start
 
