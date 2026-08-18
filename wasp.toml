@@ -9,20 +9,21 @@ quick_ring = true
 file = 'apps/timer.py'
 quick_ring = true
 
+# Heart / Weather / Music: frozen only (issue #2). Enable in Software when wanted.
 [[app]]
 file = 'apps/heart.py'
-auto_load = true
 
 [[app]]
 file = 'apps/weather.py'
-auto_load = true
 
 [[app]]
 file = 'apps/music_player.py'
-auto_load = true
 
 [[app]]
 file = 'apps/memory.py'
+
+[[app]]
+file = 'apps/storage.py'
 
 # Sole watch face for this fork (issue #1). Self-contained — no clock.py dependency.
 # Faces picker (apps/faces.py) is intentionally not enabled; only one face ships.

@@ -18,17 +18,17 @@ App selection is controlled by root [`wasp.toml`](../../wasp.toml). Nothing unde
 
 ### Auto-loaded (launcher after boot)
 
-| File | Notes |
-|------|--------|
-| `apps/heart.py` | HR; HRS3300 on device |
-| `apps/weather.py` | Gadgetbridge weather (phone→watch refresh flaky) |
-| `apps/music_player.py` | Gadgetbridge music controls (metadata flaky) |
+None currently. Heart / Weather / Music were dropped from `auto_load` (issue #2) to free heap; enable them in **Software** when wanted.
 
 ### Frozen, enable in Software when wanted
 
 | File | Notes |
 |------|--------|
+| `apps/heart.py` | HR; HRS3300 on device |
+| `apps/weather.py` | Gadgetbridge weather (phone→watch refresh flaky) |
+| `apps/music_player.py` | Gadgetbridge music controls (metadata flaky) |
 | `apps/memory.py` | Free RAM (Boot/Init/Now/GC); prefer `--exec` while iterating |
+| `apps/storage.py` | SPI NOR `/flash` use (issue #8) |
 
 System apps **Settings** and **Software** always appear on the launcher.
 
@@ -168,6 +168,7 @@ Use this section as a scratch pad when you write new fork-only apps:
 | Date | File | NAME | Status | Notes |
 |------|------|------|--------|-------|
 | 2026-08-13 | `apps/memory.py` | Memory | in wasp.toml (Software enable) | Also fine to `--exec` while iterating |
+| 2026-08-18 | `apps/storage.py` | Storage | in wasp.toml (Software enable) | Issue #8; SPI NOR via `os.statvfs('/flash')` only |
 | *(next)* | `apps/…` | … | sim / on-device | … |
 
 ---
