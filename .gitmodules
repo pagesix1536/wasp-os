@@ -16,6 +16,8 @@
 [submodule "tools/pynus"]
 	path = tools/pynus
 	url = https://github.com/wasp-os/pynus
+	# Local bytecode (__pycache__) after wasptool/imports; keep submodule tracked.
+	ignore = untracked
 [submodule "tools/micropython-font-to-py"]
 	path = tools/micropython-font-to-py
 	url = https://github.com/peterhinch/micropython-font-to-py
