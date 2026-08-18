@@ -10,39 +10,40 @@ App selection is controlled by root [`wasp.toml`](../../wasp.toml). Nothing unde
 
 ### Quick ring (swipe left/right from the clock)
 
-| File | Launcher name | Notes |
-|------|---------------|--------|
-| `apps/stopwatch.py` | Stopwatch | Quick-ring |
-| `apps/heart.py` | Heart | Quick-ring; HRS3300 on device |
+| File | Notes |
+|------|--------|
+| `apps/alarm.py` | Quick-ring |
+| `apps/timer.py` | Quick-ring |
+| *(system)* Step counter | Always registered by core — not in `wasp.toml` |
 
-### Auto-loaded (available without freesteading)
+### Auto-loaded (launcher after boot)
 
 | File | Notes |
 |------|--------|
-| `apps/alarm.py` | Alarms; may write `alarms.txt` on device (gitignored locally if present) |
-| `apps/timer.py` | Countdown timer |
-| `apps/faces.py` | Watch-face picker (`no_except = true`) |
+| `apps/heart.py` | HR; HRS3300 on device |
+| `apps/weather.py` | Gadgetbridge weather (phone→watch refresh flaky) |
+| `apps/music_player.py` | Gadgetbridge music controls (metadata flaky) |
 
-### Launcher apps (this build)
+### Frozen, enable in Software when wanted
 
-| File | Launcher name | Notes |
-|------|---------------|--------|
-| `apps/calculator.py` | Calculator | |
-| `apps/disa_b_l_e.py` | (BLE helper) | Disable/enable BLE from the watch |
-| `apps/flashlight.py` | Torch | Bright / red screen flashlight |
-| `apps/music_player.py` | Music | Gadgetbridge music control |
-| `apps/phone_finder.py` | Find phone | Gadgetbridge “find phone” |
-| `apps/weather.py` | Weather | Gadgetbridge weather units (this tree: weather only) |
+| File | Notes |
+|------|--------|
+| `apps/memory.py` | Free RAM (Boot/Init/Now/GC); prefer `--exec` while iterating |
+
+System apps **Settings** and **Software** always appear on the launcher.
 
 ### Watch faces
 
 | File | Default? |
 |------|----------|
-| `watch_faces/clock.py` | No — digital clock (currently 24h-oriented) |
+| `watch_faces/clock.py` | No — required dependency of WeekClock |
 | `watch_faces/week_clock.py` | **Yes** (`default = true`) |
-| `watch_faces/chrono.py` | No |
 
-Gadgetbridge-related apps (music, phone finder, weather) need a phone companion that speaks the Gadgetbridge protocol. They still appear in the launcher without a phone; live data requires the link.
+Quick on-device test without rebuild:
+
+```sh
+./tools/wasptool --exec apps/memory.py --eval "wasp.system.register(MemoryApp())"
+```
 
 ---
 
@@ -140,6 +141,8 @@ Class name must end in `App` for the software installer / registry conventions u
 5. **Build + OTA:** `./tools/build-flash-pinetime.sh all`.
 6. Optional quick test without full rebuild: `./tools/wasptool --upload apps/my_thing.py` then load from the Software app / REPL (not frozen until rebuild).
 
+**Important (simulator + `wasp.toml` apps):** `make sim` runs `configure_wasp_apps.py`, which **copies** listed apps into `wasp/apps/user/`. The simulator imports those copies (`apps.user.*`), not `apps/*.py` directly. After editing an enabled app, **restart the sim** (or re-copy into `wasp/apps/user/`) so you are not testing a stale file. Generated `wasp/apps/user/` is not committed.
+
 ### Useful APIs
 
 - `wasp.system` — events, ticks, navigate, notifications, brightness
@@ -163,7 +166,8 @@ Use this section as a scratch pad when you write new fork-only apps:
 
 | Date | File | NAME | Status | Notes |
 |------|------|------|--------|-------|
-| *(example)* | `apps/…` | … | sim / on-device | … |
+| 2026-08-13 | `apps/memory.py` | Memory | in wasp.toml (Software enable) | Also fine to `--exec` while iterating |
+| *(next)* | `apps/…` | … | sim / on-device | … |
 
 ---
 
