@@ -99,7 +99,3 @@ Fix: reboot, or `wasp.watch.display.invert(True)` then redraw (panel â€œnormalâ€
 - **GitHub Issues** on this fork = idea/bug backlog (e.g. [#1 US watch face](https://github.com/pagesix1536/wasp-os/issues/1)).  
 - Prefer labels like `enhancement`, `bug`, `heap`, `watchface`.  
 - Skip Projects/Milestones unless the owner asks.
-
-## Analogies
-
-Owner learns well from **car/engine**, **Linux**, and **PC** analogies. Prefer those when explaining heap, freeze vs register, BLE, etc.

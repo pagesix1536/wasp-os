@@ -217,12 +217,6 @@ Fork-specific documentation is **Markdown under `docs/fork/`** only (not wired i
 
 These are **local policy** for this fork / laptop setup. Prefer them over inventing a new workflow.
 
-### How the owner learns (explanations)
-
-- Prefer **analogies** when something is confusing — especially **cars / engines / automotive**, and also **Linux**, general **PC**, or other everyday systems the owner already knows.
-- Aim for “same idea as X,” not a forced 1-to-1 mapping of every detail.
-- Keep this in mind for RAM/heap, freesteading vs freeze, BLE/OTA, containers, etc.
-
 ### Near-term goal
 
 - Write and iterate on **new optional Python apps** for the PineTime (under `apps/`, enable via `wasp.toml`), using the **simulator** heavily before any on-device flash.
