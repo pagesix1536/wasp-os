@@ -32,6 +32,12 @@ None currently. Heart / Weather / Music were dropped from `auto_load` (issue #2)
 
 System apps **Settings** and **Software** always appear on the launcher.
 
+**Settings → Timeout** (issue #5): adjusts how long the screen stays on
+before sleep (`wasp.system.blank_after`). Choices: 5 / 10 / 15 / 30 / 60
+seconds (default **15**). Takes effect immediately; not persisted across
+reboot (same as Brightness / Notification Level). Longer values use more
+battery.
+
 ### Watch faces
 
 | File | Default? |

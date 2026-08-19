@@ -7,6 +7,11 @@
 Allows a very small set of user preferences (including the date and
 time) to be set on the device itself.
 
+Pages: Brightness, Notification Level, Timeout (screen blank delay),
+Time, Date, Units. Timeout writes ``wasp.system.blank_after``
+immediately (choices 5 / 10 / 15 / 30 / 60 seconds; default 15). Like
+Brightness, it is not persisted across reboot.
+
 .. figure:: res/screenshots/SettingsApp.png
     :width: 179
 
@@ -31,6 +36,9 @@ class SettingsApp():
     def __init__(self):
         self._slider = wasp.widgets.Slider(3, 10, 90)
         self._nfy_slider = wasp.widgets.Slider(3, 10, 90)
+        # Discrete blank_after choices (seconds). Default in wasp.system is 15.
+        self._timeout_opts = (5, 10, 15, 30, 60)
+        self._timeout_slider = wasp.widgets.Slider(len(self._timeout_opts), 10, 90)
         self._scroll_indicator = wasp.widgets.ScrollIndicator()
         self._HH = wasp.widgets.Spinner(50, 60, 0, 23, 2)
         self._MM = wasp.widgets.Spinner(130, 60, 0, 59, 2)
@@ -39,9 +47,20 @@ class SettingsApp():
         self._yy = wasp.widgets.Spinner(160, 60, 20, 60, 2)
         self._units = ['Metric', 'Imperial']
         self._units_toggle = wasp.widgets.Button(32, 90, 176, 48, "Change")
-        self._settings = ['Brightness', 'Notification Level', 'Time', 'Date', 'Units']
+        self._settings = ['Brightness', 'Notification Level', 'Timeout',
+                          'Time', 'Date', 'Units']
         self._sett_index = 0
         self._current_setting = self._settings[0]
+
+    def _timeout_index(self):
+        """Map current blank_after to the nearest slider step."""
+        opts = self._timeout_opts
+        v = wasp.system.blank_after
+        best = 0
+        for i, o in enumerate(opts):
+            if abs(o - v) < abs(opts[best] - v):
+                best = i
+        return best
 
     def foreground(self):
         self._slider.value = wasp.system.brightness - 1
@@ -56,6 +75,11 @@ class SettingsApp():
         elif self._current_setting == 'Notification Level':
             self._nfy_slider.touch(event)
             wasp.system.notify_level = self._nfy_slider.value + 1
+        elif self._current_setting == 'Timeout':
+            self._timeout_slider.touch(event)
+            wasp.system.blank_after = self._timeout_opts[self._timeout_slider.value]
+            # Apply immediately to the current wake period.
+            wasp.system.keep_awake()
         elif self._current_setting == 'Time':
             if self._HH.touch(event) or self._MM.touch(event):
                 now = list(wasp.watch.rtc.get_localtime())
@@ -102,6 +126,8 @@ class SettingsApp():
             self._slider.value = wasp.system.brightness - 1
         elif self._current_setting == 'Notification Level':
             self._nfy_slider.value = wasp.system.notify_level - 1
+        elif self._current_setting == 'Timeout':
+            self._timeout_slider.value = self._timeout_index()
         elif self._current_setting == 'Time':
             now = wasp.watch.rtc.get_localtime()
             self._HH.value = now[3]
@@ -147,5 +173,9 @@ class SettingsApp():
                 say = "Silent"
             self._nfy_slider.update()
             draw.string(say, 0, 150, width=240)
+        elif self._current_setting == 'Timeout':
+            self._timeout_slider.update()
+            secs = self._timeout_opts[self._timeout_slider.value]
+            draw.string('{} seconds'.format(secs), 0, 150, width=240)
         elif self._current_setting == 'Units':
             draw.string(wasp.system.units, 0, 150, width=240)
