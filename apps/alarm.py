@@ -6,7 +6,12 @@
 ~~~~~~~~~~~~~~~~~~~~
 
 An application to set a vibration alarm. All settings can be accessed from the Watch UI.
-Press the button to turn off ringing alarms.
+
+List page: enable/disable via the checkbox; swipe left/right for the quick
+ring. Edit page: SAV writes and returns to the list, DEL removes the slot,
+the side button saves and goes to the clock, swipes are ignored. Ringing
+page: swipe up to stop, swipe down to snooze 10 minutes; tap and the side
+button do nothing. An unanswered alarm stops after two minutes.
 
     .. figure:: res/screenshots/AlarmApp.png
         :width: 179
@@ -74,6 +79,32 @@ _ENABLED_IDX = const(2)
 _HOME_PAGE = const(-1)
 _RINGING_PAGE = const(-2)
 
+# Colours (RGB565)
+_WHITE = const(0xFFFF)
+_RED = const(0xF800)
+_YELLOW = const(0xFFE0)
+_SAV_BG = const(0x07C0)
+_DEL_BG = const(0xF800)
+
+_RING_SECS = const(120)
+_SNOOZE_MIN = const(10)
+
+# Icon is 96x64. Time sits at the top; icon below it.
+_ICON_X = const(72)
+_ICON_Y = const(44)
+_ICON_H = const(64)
+_TIME_Y = const(4)
+# STOP (sans24, 24 px) centered on the icon's vertical midpoint (y=76).
+_STOP_Y = const(64)
+# 4 px under STOP: up-arrow tip and down-arrow tail share this y.
+_ARROW_ALIGN_Y = const(92)
+# Down-arrow tip and up-arrow tail, just above SNOOZE.
+_ARROW_POINT_Y = const(204)
+_SNOOZE_Y = const(208)
+_UP_ARROW_X = const(48)
+_DOWN_ARROW_X = const(192)
+
+
 class AlarmApp:
     """Allows the user to set a vibration alarm.
     """
@@ -86,6 +117,10 @@ class AlarmApp:
         self.page = _HOME_PAGE
         self.alarms = (bytearray(3), bytearray(3), bytearray(3), bytearray(3))
         self.pending_alarms = array.array('d', [0.0, 0.0, 0.0, 0.0])
+        self._snooze_at = 0.0
+        self._ring_started = 0
+        self._ring_hh = 8
+        self._ring_mm = 0
 
         self.num_alarms = 0
         try:
@@ -107,23 +142,31 @@ class AlarmApp:
     def foreground(self):
         """Activate the application."""
 
-        self.del_alarm_btn = widgets.Button(170, 204, 70, 35, 'DEL')
-        self.hours_wid = widgets.Spinner(50, 30, 0, 23, 2)
-        self.min_wid = widgets.Spinner(130, 30, 0, 59, 2, 5)
-        self.day_btns = (widgets.ToggleButton(10, 145, 40, 35, 'Mo'),
-                         widgets.ToggleButton(55, 145, 40, 35, 'Tu'),
-                         widgets.ToggleButton(100, 145, 40, 35, 'We'),
-                         widgets.ToggleButton(145, 145, 40, 35, 'Th'),
-                         widgets.ToggleButton(190, 145, 40, 35, 'Fr'),
-                         widgets.ToggleButton(10, 185, 40, 35, 'Sa'),
-                         widgets.ToggleButton(55, 185, 40, 35, 'Su'))
-        self.alarm_checks = (widgets.Checkbox(200, 57), widgets.Checkbox(200, 102),
-                             widgets.Checkbox(200, 147), widgets.Checkbox(200, 192))
+        self.save_btn = widgets.Button(136, 136, 100, 42, 'SAV')
+        self.del_alarm_btn = widgets.Button(136, 190, 100, 42, 'DEL')
+        self.hours_wid = widgets.Spinner(100, 0, 0, 23, 2)
+        self.min_wid = widgets.Spinner(180, 0, 0, 59, 2, 1)
+        self.day_btns = (widgets.ToggleButton(4, 4, 52, 44, 'Mo'),
+                         widgets.ToggleButton(4, 52, 52, 44, 'Tu'),
+                         widgets.ToggleButton(4, 100, 52, 44, 'We'),
+                         widgets.ToggleButton(4, 148, 52, 44, 'Th'),
+                         widgets.ToggleButton(4, 196, 52, 44, 'Fr'),
+                         widgets.ToggleButton(62, 148, 52, 44, 'Sa'),
+                         widgets.ToggleButton(62, 196, 52, 44, 'Su'))
+        self.alarm_checks = (widgets.Checkbox(200, 57),
+                             widgets.Checkbox(200, 102),
+                             widgets.Checkbox(200, 147),
+                             widgets.Checkbox(200, 192))
 
         self._deactivate_pending_alarms()
+        if self.page == _RINGING_PAGE:
+            self._write_alarms()
         self._draw()
 
-        wasp.system.request_event(wasp.EventMask.TOUCH | wasp.EventMask.SWIPE_LEFTRIGHT | wasp.EventMask.BUTTON)
+        wasp.system.request_event(wasp.EventMask.TOUCH |
+                                  wasp.EventMask.SWIPE_LEFTRIGHT |
+                                  wasp.EventMask.SWIPE_UPDOWN |
+                                  wasp.EventMask.BUTTON)
         wasp.system.request_tick(1000)
 
     def background(self):
@@ -133,6 +176,8 @@ class AlarmApp:
 
         self.page = _HOME_PAGE
 
+        self.save_btn = None
+        del self.save_btn
         self.del_alarm_btn = None
         del self.del_alarm_btn
         self.hours_wid = None
@@ -145,50 +190,56 @@ class AlarmApp:
         del self.day_btns
 
         self._set_pending_alarms()
-        try:
-            if self.num_alarms == 0:
-                return
-            with open("alarms.txt", "w") as f:
-                for n in range(self.num_alarms):
-                    al = self.alarms[n]
-                    f.write(",".join(map(str, al)) + ";")
-        except Exception:
-            pass
-
+        self._write_alarms()
 
     def tick(self, ticks):
         """Notify the application that its periodic tick is due."""
         if self.page == _RINGING_PAGE:
             wasp.watch.vibrator.pulse(duty=50, ms=500)
             wasp.system.keep_awake()
-        else:
+            if wasp.watch.rtc.uptime - self._ring_started >= _RING_SECS:
+                self._stop()
+        elif self.page == _HOME_PAGE:
             wasp.system.bar.update()
 
     def press(self, button, state):
-        """"Notify the application of a button press event."""
+        """Notify the application of a button press event."""
+        if not state:
+            return
+        if self.page == _RINGING_PAGE:
+            return
         wasp.system.navigate(wasp.EventType.HOME)
 
     def swipe(self, event):
-        """"Notify the application of a swipe event."""
+        """Notify the application of a swipe event."""
         if self.page == _RINGING_PAGE:
-            self._snooze()
+            if event[0] == wasp.EventType.UP:
+                self._stop()
+            elif event[0] == wasp.EventType.DOWN:
+                self._snooze()
         elif self.page > _HOME_PAGE:
-            self._save_alarm()
-            self._draw()
+            return
         else:
             wasp.system.navigate(event[0])
 
     def touch(self, event):
         """Notify the application of a touchscreen touch event."""
         if self.page == _RINGING_PAGE:
-            self._snooze()
-        elif self.page > _HOME_PAGE:
+            return
+        if self.page > _HOME_PAGE:
             if self.hours_wid.touch(event) or self.min_wid.touch(event):
                 return
             for day_btn in self.day_btns:
-                if day_btn.touch(event):
+                if self._hit(day_btn, event):
+                    day_btn.state = not day_btn.state
+                    day_btn.draw()
                     return
-            if self.del_alarm_btn.touch(event):
+            if self._hit(self.save_btn, event):
+                self._save_alarm()
+                self._write_alarms()
+                self._draw()
+                return
+            if self._hit(self.del_alarm_btn, event):
                 self._remove_alarm(self.page)
         elif self.page == _HOME_PAGE:
             for index, checkbox in enumerate(self.alarm_checks):
@@ -197,6 +248,7 @@ class AlarmApp:
                         self.alarms[index][_ENABLED_IDX] |= _IS_ACTIVE
                     else:
                         self.alarms[index][_ENABLED_IDX] &= ~_IS_ACTIVE
+                    self._write_alarms()
                     self._draw(index)
                     return
             for index, alarm in enumerate(self.alarms):
@@ -211,6 +263,14 @@ class AlarmApp:
                     self.num_alarms += 1
                     self._draw(index)
                     return
+
+    def _hit(self, btn, event):
+        """Exact widget box (no 10px inflate) so adjacent keys do not steal."""
+        im = btn._im
+        x = event[1]
+        y = event[2]
+        return (im[0] <= x < im[0] + im[2] and
+                im[1] <= y < im[1] + im[3])
 
     def _remove_alarm(self, alarm_index):
         # Shift alarm indices
@@ -227,6 +287,7 @@ class AlarmApp:
 
         self.page = _HOME_PAGE
         self.num_alarms -= 1
+        self._write_alarms()
         self._draw()
 
     def _save_alarm(self):
@@ -241,6 +302,15 @@ class AlarmApp:
 
         self.page = _HOME_PAGE
 
+    def _write_alarms(self):
+        try:
+            with open("alarms.txt", "w") as f:
+                for n in range(self.num_alarms):
+                    al = self.alarms[n]
+                    f.write(",".join(map(str, al)) + ";")
+        except Exception:
+            pass
+
     def _draw(self, update_alarm_row=-1):
         if self.page == _RINGING_PAGE:
             self._draw_ringing_page()
@@ -252,31 +322,66 @@ class AlarmApp:
     def _draw_ringing_page(self):
         draw = wasp.watch.drawable
 
-        draw.set_color(wasp.system.theme('bright'))
+        draw.set_color(_WHITE)
         draw.fill()
+
+        draw.set_font(fonts.sans36)
+        draw.string("{:02d}:{:02d}".format(self._ring_hh, self._ring_mm),
+                    0, _TIME_Y, width=240)
+        draw.blit(icon, _ICON_X, _ICON_Y)
+
+        draw.set_color(_RED)
         draw.set_font(fonts.sans24)
-        draw.string("Alarm", 0, 150, width=240)
-        draw.string("Touch to snooze", 0, 180, width=240)
-        draw.blit(icon, 73, 50)
-        draw.line(35, 1, 35, 239)
-        draw.string('S', 10, 65)
-        draw.string('t', 10, 95)
-        draw.string('o', 10, 125)
-        draw.string('p', 10, 155)
+        stop_w = fonts.width(fonts.sans24, 'STOP')
+        draw.string('STOP', _UP_ARROW_X - stop_w // 2, _STOP_Y)
+
+        draw.set_color(_YELLOW)
+        # Width stays on the right half so the bg fill does not erase the
+        # center line.
+        draw.string('SNOOZE', 130, _SNOOZE_Y, width=106, right=True)
+
+        self._arrow_up(draw, _UP_ARROW_X, _ARROW_ALIGN_Y, _ARROW_POINT_Y)
+        self._arrow_down(draw, _DOWN_ARROW_X, _ARROW_ALIGN_Y, _ARROW_POINT_Y)
+
+        # Drawn last so SNOOZE/STOP cannot wipe the divider.
+        line_top = _ICON_Y + _ICON_H + 5
+        draw.line(120, line_top, 120, 239, 1, _WHITE)
+
+    @staticmethod
+    def _arrow_up(draw, cx, y_tip, y_end):
+        h = 32
+        hw = 22
+        for i in range(h):
+            w = 1 + (hw * i) // h
+            draw.fill(_WHITE, cx - w, y_tip + i, (2 * w) + 1, 1)
+        draw.fill(_WHITE, cx - 4, y_tip + h - 2, 9, y_end - (y_tip + h - 2))
+
+    @staticmethod
+    def _arrow_down(draw, cx, y_top, y_tip):
+        h = 32
+        hw = 22
+        y0 = y_tip - h
+        for i in range(h):
+            w = 1 + (hw * (h - 1 - i)) // h
+            draw.fill(_WHITE, cx - w, y0 + i, (2 * w) + 1, 1)
+        sh = y0 + 2 - y_top
+        if sh > 0:
+            draw.fill(_WHITE, cx - 4, y_top, 9, sh)
 
     def _draw_edit_page(self):
         draw = wasp.watch.drawable
         alarm = self.alarms[self.page]
 
         draw.fill()
-        self._draw_system_bar()
 
         self.hours_wid.value = alarm[_HOUR_IDX]
         self.min_wid.value = alarm[_MIN_IDX]
         draw.set_font(fonts.sans28)
-        draw.string(':', 110, 90-14, width=20)
+        draw.set_color(wasp.system.theme('bright'))
+        draw.string(':', 160, 46, width=20)
 
-        self.del_alarm_btn.draw()
+        self.save_btn.update(_SAV_BG, _WHITE, _WHITE)
+        self.del_alarm_btn.update(_DEL_BG, _WHITE, _WHITE)
         self.hours_wid.draw()
         self.min_wid.draw()
         for day_idx, day_btn in enumerate(self.day_btns):
@@ -326,14 +431,34 @@ class AlarmApp:
         sbar.draw()
 
     def _alert(self):
+        self._snooze_at = 0.0
+        now = wasp.watch.rtc.time()
+        for i in range(self.num_alarms):
+            pending = self.pending_alarms[i]
+            if pending and pending <= now:
+                self._ring_hh = self.alarms[i][_HOUR_IDX]
+                self._ring_mm = self.alarms[i][_MIN_IDX]
+                break
+        self._ring_started = wasp.watch.rtc.uptime
         self.page = _RINGING_PAGE
         wasp.system.wake()
         wasp.system.switch(self)
 
+    def _stop(self):
+        if self._snooze_at:
+            wasp.system.cancel_alarm(self._snooze_at, self._alert)
+            self._snooze_at = 0.0
+        self.page = _HOME_PAGE
+        self._write_alarms()
+        wasp.system.navigate(wasp.EventType.HOME)
+
     def _snooze(self):
         now = wasp.watch.rtc.get_localtime()
-        alarm = (now[0], now[1], now[2], now[3], now[4] + 10, now[5], 0, 0, 0)
-        wasp.system.set_alarm(time.mktime(alarm), self._alert)
+        when = time.mktime((now[0], now[1], now[2], now[3],
+                            now[4] + _SNOOZE_MIN, now[5], 0, 0, 0))
+        self._snooze_at = when
+        wasp.system.set_alarm(when, self._alert)
+        self.page = _HOME_PAGE
         wasp.system.navigate(wasp.EventType.HOME)
 
     def _set_pending_alarms(self):

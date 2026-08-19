@@ -305,9 +305,36 @@ SoftDevice Nordic download often **403** — helper copies from bootloader submo
 
 ### Simulator
 
-- Use `./tools/run-sim-podman.sh`. Agent-launched sim may freeze input — prefer owner terminal.
-- Sim imports `wasp/apps/user/` copies from toml; restart sim after editing enabled apps.
-- Free-RAM display often **Not supported** in sim.
+Owner interactive session: `./tools/run-sim-podman.sh` (X11/XWayland). Tab or click the left bezel ≈ side button. Press **`s`** to write `res/{App.NAME}App.png` (always that name — rename immediately if you need to keep more than one shot).
+
+**Agents can and should drive the simulator themselves** for UI work (verified 2026-08-19). Do not skip screenshots because an interactive SDL window is awkward. Import wasp in the **project Podman image** with host `DISPLAY` and X11, `switch()` to the app, draw the page you care about, then call `display.save_image()` (same helper the `s` key uses). Do **not** call `wasp.system.run()` in that script — it is the blocking event loop. Use `secondary_init()` + `switch()` + save, then exit.
+
+```sh
+# Host: allow the container to talk to XWayland
+xhost +local: >/dev/null 2>&1 || true
+
+podman run --rm \
+  --security-opt label=disable \
+  --volume="$PWD:/project/:z" \
+  --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
+  --env=DISPLAY="${DISPLAY}" \
+  --env=SDL_VIDEODRIVER=x11 \
+  --userns=keep-id --user="$(id -u):$(id -g)" --net=host \
+  --entrypoint="" \
+  "${WASP_DEV_IMAGE:-wasp-os/wasp-os-dev:0.1.0}" \
+  bash -lc 'cd /project && PYTHONPATH=.:wasp/boards/simulator:wasp:wasp/apps/system python3 script.py'
+```
+
+In `script.py`: `import wasp`, `import display`, `wasp.system.secondary_init()`, construct or `switch()` the app, set `app.page` / inject state, `wasp.system.switch(app)`, `display.window.refresh()`, then `display.save_image(display.windowsurface, "res/Whatever.png")`. Pick a **distinct** filename; `s` and `{NAME}App.png` overwrite.
+
+Other sim facts:
+
+- `make check` / unit tests can use `SDL_VIDEODRIVER=dummy` (no window). Screenshots need real X11 as above.
+- Enabled apps are **copied** to `wasp/apps/user/` from `wasp.toml`. After editing `apps/*.py`, `cp` into `wasp/apps/user/` (or re-run `tools/configure_wasp_apps.py wasp.toml`) before sim/import, or you will screenshot stale code.
+- Import the tree you just edited (`from apps.alarm import AlarmApp`) when the script constructs the app; the registered quick-ring instance may still be the `apps.user` copy.
+- Headless pytest that imports every `watch_faces/*.py` currently dies on this fork (`week_clock` wants `apps.user.clock`, which is not frozen). That is pre-existing; do not treat it as a regression in the app you are changing.
+- Free-RAM display is often **Not supported** in sim.
+- An **interactive** `make sim` window the agent launches can still steal/freeze host input. Prefer a short script + `save_image` for agent verification; leave the long-lived window to the owner.
 
 ### Tracking ideas
 
@@ -318,6 +345,7 @@ SoftDevice Nordic download often **403** — helper copies from bootloader submo
 - Default device context is **PineTime** (`BOARD=pinetime`).
 - Prefer **`--exec` for on-watch app iteration**; simulator for UI layout; **OTA freeze** when shipping.
 - Prefer **simulator + `make check`** over flashing for everyday Python UI work when hardware isn’t needed.
+- After a UI change, **drive the sim and save a screenshot** (see Simulator above). Do not stop at “it compiled” or a hand-drawn mockup.
 - Custom feature sets go through **`wasp.toml`**, not hard-coding every app into the board manifest by hand.
 - Core OS changes touch `wasp/`, drivers, and/or board `watch.py.in` / manifests; optional apps usually stay under `apps/` or `watch_faces/`.
 - Do not treat experimental Grok cross-session memory as a substitute for this file or `docs/fork/`; keep durable project facts here.
