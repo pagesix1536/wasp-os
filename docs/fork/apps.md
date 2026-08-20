@@ -27,20 +27,25 @@ None currently. Heart / Weather / Music were dropped from `auto_load` (issue #2)
 | `apps/heart.py` | HR; HRS3300 on device |
 | `apps/weather.py` | Gadgetbridge weather (phone→watch refresh flaky) |
 | `apps/music_player.py` | Gadgetbridge music controls (metadata flaky) |
-| `apps/memory.py` | Free RAM (Boot/Init/Now/GC); prefer `--exec` while iterating |
+| `apps/memory.py` | Free RAM (Boot/Init/Now/**GC**); prefer `--exec` while iterating |
 | `apps/storage.py` | SPI NOR `/flash` use (issue #8) |
 
 System apps **Settings** and **Software** always appear on the launcher.
 
-**Settings** (issues #5 / #13): four swipe pages — **Levels** (Brightness +
-Notification Level), **Sleep** (Timeout + Units), **Time**, **Date**
-(US **MM-DD-YY**). Timeout adjusts how long the screen stays on before
-sleep (`wasp.system.blank_after`); choices 5 / 10 / 15 / 30 / 60 seconds
-(default **15**). Takes effect immediately; not persisted across reboot
-(same as Brightness / Notification Level). Longer values use more
-battery. Widgets are built in `foreground()` and dropped in
-`background()` so the always-registered Settings instance does not keep
-controls on the heap while unused.
+**Settings** ([issue #13](https://github.com/pagesix1536/wasp-os/issues/13), Timeout from [#5](https://github.com/pagesix1536/wasp-os/issues/5)): four swipe pages —
+
+| Page | Contents |
+|------|----------|
+| **Levels** | Brightness + Notification Level |
+| **Sleep** | Timeout (`blank_after`) + Units |
+| **Time** | HH : MM spinners |
+| **Date** | US **MM - DD - YY** spinners |
+
+Timeout choices: 5 / 10 / 15 / 30 / 60 seconds (default **15**). Takes effect immediately; not persisted across reboot (same as Brightness / Notification Level). Longer values use more battery.
+
+Widgets are built in `foreground()` and dropped in `background()` so the always-registered Settings instance does not keep controls on the heap while unused. Layout study / sim shots: `res/settings-layout-study/`.
+
+**Memory app:** focus on **GC** for comparisons (after `gc.collect()`). **Now** is pre-collect and often looks artificially low. Legend and a post-#13 baseline live in [operations.md](operations.md).
 
 ### Watch faces
 

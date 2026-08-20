@@ -82,7 +82,7 @@ Simulator / sphinx stubs implement no-op `get_wake_event` / `clear_wake`.
 
 - Leaving CST816S in monitor mode for tap-wake: roughly **~+95 µA** vs deep sleep (datasheet order of magnitude).
 - Raise-to-wake pays: accel already on for steps; **APS off** + any-motion feature engine adds idle cost (measure on soak — owner testing).
-- Short blank timeout (5s) increases UI on/off cycles if false wakes happen; use Settings Timeout **15–30s** for fairer battery comparisons.
+- Short blank timeout (5s) increases UI on/off cycles if false wakes happen; use Settings → **Sleep** → Timeout **15–30s** for fairer battery comparisons.
 
 ## Tuning knobs
 

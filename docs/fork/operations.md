@@ -9,7 +9,18 @@ How we actually develop, flash, and debug the watch. Complements [tooling.md](to
 - Chip: **64 KB RAM** total — not all available to Python.
 - After SoftDevice + MicroPython + display/drivers + a few registered apps, **free heap is often ~8–12 KB**.
 - **Frozen** code lives in flash (cheap). **Registered instances**, widget trees, and **on-device compile** (`--exec` / freestead import) eat heap.
-- `apps/memory.py` Boot / Init / Now / GC = `gc.mem_free()` snapshots at board bring-up, after `register_defaults`, at open, and after `gc.collect()`.
+- **Settings** (issue #13): always registered, but its sliders/spinners are built in `foreground()` and dropped in `background()` — idle Settings no longer parks a full widget tree on the heap.
+
+### Reading the Memory app (`apps/memory.py`)
+
+| Label | When | Use for |
+|-------|------|---------|
+| **Boot** | End of board bring-up (`watch.free`) | Early baseline before apps finish registering |
+| **Init** | After `register_defaults()` + collect (`wasp.free`) | “Apps registered, Settings idle” headroom |
+| **Now** | Opening Memory, before collect | Easy to look worse (fragmentation); don’t compare this |
+| **GC** | After `gc.collect()` while Memory is open | **Primary** apples-to-apples free-heap number |
+
+Post–issue #13 on-device sample (fresh reboot, then open Memory): Boot **24480**, Init **11040**, Now **5008**, GC **10448**. Treat **GC ≈ 10 KB** (and Init ≈ 11 KB) as the current lean-image baseline. `wasptool --memfree` is the same idea without the Memory UI cost.
 
 ## Prefer `--exec` for live app testing
 
@@ -50,6 +61,7 @@ Helpers: SoftDevice 403 → copy from bootloader tree; DFU via `tools/bleak_lega
 | Watch face `default = true` | Boot face (exactly one) |
 
 **Always registered by core (not toml):** Step counter (quick ring), Settings, Software (launcher).
+Settings keeps only page state at boot; UI widgets exist only while Settings is open (see [apps.md](apps.md)).
 
 ## Critical boot gotchas
 
