@@ -13,7 +13,7 @@ App selection is controlled by root [`wasp.toml`](../../wasp.toml). Nothing unde
 | File | Notes |
 |------|--------|
 | `apps/alarm.py` | Quick-ring |
-| `apps/timer.py` | Quick-ring |
+| `apps/timer.py` | Quick-ring; spinners build/drop with foreground/background (issue #2) |
 | *(system)* Step counter | Always registered by core — not in `wasp.toml` |
 
 ### Auto-loaded (launcher after boot)

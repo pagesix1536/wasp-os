@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Copyright (C) 2020 Wolfgang Ginolas
+# Copyright (C) 2026 Chris Miller
 """Timer Application
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -10,6 +11,9 @@ An application to set a vibration in a specified amount of time. Like a kitchen 
 
         Screenshot of the Timer Application
 
+Spinners are built in :py:meth:`foreground` and released in
+:py:meth:`background` so the quick-ring Timer instance does not keep
+them on the heap while unused (issue #2).
 """
 
 import wasp
@@ -61,15 +65,30 @@ class TimerApp():
 
     def __init__(self):
         """Initialize the application."""
+        # Duration ints survive background(); spinners do not.
+        self._minutes_val = 10
+        self._seconds_val = 0
+        self.current_alarm = None
+        self.state = _STOPPED
+
+    def _build_widgets(self):
         self.minutes = widgets.Spinner(50, 60, 0, 99, 2)
         self.seconds = widgets.Spinner(130, 60, 0, 59, 2)
-        self.current_alarm = None
+        self.minutes.value = self._minutes_val
+        self.seconds.value = self._seconds_val
 
-        self.minutes.value = 10
-        self.state = _STOPPED
+    def _drop_widgets(self):
+        if hasattr(self, 'minutes'):
+            self._minutes_val = self.minutes.value
+            self._seconds_val = self.seconds.value
+            self.minutes = None
+            del self.minutes
+            self.seconds = None
+            del self.seconds
 
     def foreground(self):
         """Activate the application."""
+        self._build_widgets()
         self._draw()
         wasp.system.request_event(wasp.EventMask.TOUCH)
         wasp.system.request_tick(1000)
@@ -78,6 +97,7 @@ class TimerApp():
         """De-activate the application."""
         if self.state == _RINGING:
             self.state = _STOPPED
+        self._drop_widgets()
 
     def tick(self, ticks):
         """Notify the application that its periodic tick is due."""

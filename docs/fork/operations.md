@@ -10,6 +10,7 @@ How we actually develop, flash, and debug the watch. Complements [tooling.md](to
 - After SoftDevice + MicroPython + display/drivers + a few registered apps, **free heap is often ~8–12 KB**.
 - **Frozen** code lives in flash (cheap). **Registered instances**, widget trees, and **on-device compile** (`--exec` / freestead import) eat heap.
 - **Settings** (issue #13): always registered, but its sliders/spinners are built in `foreground()` and dropped in `background()` — idle Settings no longer parks a full widget tree on the heap.
+- **Timer** (issue #2): same pattern for its two quick-ring spinners; duration ints and alarm state survive `background()`.
 
 ### Reading the Memory app (`apps/memory.py`)
 
