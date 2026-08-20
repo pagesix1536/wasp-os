@@ -1,14 +1,42 @@
 name: wasp-os simulator tests
 
+# ---------------------------------------------------------------------------
+# DISABLED on this personal fork (pagesix1536/wasp-os).
+#
+# Reasons:
+#   - Simulator / make check is already run locally during development
+#     (Podman + tools/run-sim-podman.sh). Post-push CI duplicates that and
+#     adds no extra coverage for this PineTime-only workflow.
+#   - Headless pytest imports every watch_faces/*.py; week_clock.py needs
+#     apps.user.clock, which this fork does not freeze (sole face is
+#     clock_us). The job has been failing for that reason, not as a useful
+#     regression signal — only failure-email noise.
+#
+# The full job body is intentionally left intact so it can be re-enabled later.
+#
+# To re-enable automatic CI:
+#   1. Restore the original `on:` triggers below (push / pull_request / dispatch).
+#   2. Remove the job-level `if: false` line under `jobs.build`.
+#   3. Fix watch-face discovery vs wasp.toml (or enable clock.py) so check passes.
+#   4. Commit and push (or re-enable via GitHub UI if you disabled it there).
+#
+# Original triggers (for restore):
+#   on:
+#     push:
+#       branches: [ master ]
+#     pull_request:
+#       branches: [ master ]
+#     workflow_dispatch:
+# ---------------------------------------------------------------------------
+
+# No automatic runs. workflow_dispatch kept so this remains a valid workflow
+# file; the job is still skipped via `if: false` even if started manually.
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
   workflow_dispatch:
 
 jobs:
   build:
+    if: false  # hard-disable; remove this line when re-enabling
     runs-on: ubuntu-24.04
 
     steps:

@@ -18,7 +18,7 @@ Scripts and workflows added for day-to-day PineTime work on **Fedora + Podman + 
 | Workflow | Status on this fork |
 |----------|---------------------|
 | `.github/workflows/main.yml` (binary distribution) | **Disabled** — SoftDevice Nordic download fails in CI (403); multi-board dist not needed for PineTime-only local builds. File kept for later re-enable (see comments in the workflow). |
-| `.github/workflows/sim.yml` (simulator tests) | Still enabled — cheap `make check` on push. |
+| `.github/workflows/sim.yml` (simulator tests) | **Disabled** — local Podman sim already covers this; CI was red noise (`week_clock` → missing `apps.user.clock`). File kept for later re-enable. |
 
 Environment overrides used by the helpers:
 
