@@ -204,6 +204,7 @@ Before claiming a change is done:
 | `docs/fork/tooling.md` | Helper scripts: Podman sim, build/flash, bleak DFU |
 | `docs/fork/apps.md` | Enabled apps (`wasp.toml`) + starter for new apps |
 | `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap gotchas, BLE debug |
+| `docs/fork/raise-to-wake.md` | Raise-to-wake design, INT pitfalls, tuning (issue #6) |
 | `AGENTS.md` | This file — agent/human project constitution |
 | `docs/install.rst` | Build, flash, prerequisites (upstream Sphinx) |
 | `docs/appguide.rst` | Writing apps (lifecycle, APIs) |
@@ -296,6 +297,16 @@ SoftDevice Nordic download often **403** — helper copies from bootloader submo
 | White bg / dark glyphs / washed color | **CrashApp** left ST7789 invert wrong | Reboot, or `wasp.watch.display.invert(True)` then redraw |
 | `AttributeError: sleep_at` | Half-init: `secondary_init` aborted before setting `sleep_at` | Reboot, or set `wasp.system.sleep_at = wasp.watch.rtc.uptime + 90` then `schedule()` |
 | `--exec` `MemoryError` | Not enough contiguous heap to paste-compile | Reboot; disable auto-load apps; free launcher instances; or freeze |
+| Sleep → **instant wake loop** | Accel INT1 programmed **active-high** (`0x53=0x0A`) and/or waking on `ACCEL_INT==0` level | Use **`0x53=0x08`** (active-low); wake only on IRQ flag + pose — see [docs/fork/raise-to-wake.md](docs/fork/raise-to-wake.md) |
+
+### Raise-to-wake / tap-to-wake (issue #6 — research kept, firmware deferred)
+
+Full write-up: [`docs/fork/raise-to-wake.md`](docs/fork/raise-to-wake.md).
+
+- **Current firmware:** stock wake only (**button** + charging). Raise-to-wake code was **reverted** after soak testing (false wakes vs missed raises; simple pose gate is not enough).
+- **Not tap-to-wake:** CST816S is **deep-slept** in `Manager.sleep()`; taps while blanked do nothing unless touch stays in monitor mode (~+95 µA).
+- **Tried:** BMA any-motion IRQ + upright pose check. Bosch **`WRIST_WEAR` alone did not work** on PineTime. InfiniTime uses heavier software history — out of scope for a quick wasp feature.
+- **If reviving:** read the pitfalls in `raise-to-wake.md` first (`0x53=0x08` never `0x0A`; APS off; do not level-poll `ACCEL_INT`; expect OTA for driver work).
 
 ### BLE / Gadgetbridge expectations
 

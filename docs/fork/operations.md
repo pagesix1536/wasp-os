@@ -2,6 +2,8 @@
 
 How we actually develop, flash, and debug the watch. Complements [tooling.md](tooling.md) and [apps.md](apps.md). A shorter copy lives in root [`AGENTS.md`](../../AGENTS.md) so agents always see it.
 
+**Raise-to-wake** research (deferred; firmware is button-wake only again): see [raise-to-wake.md](raise-to-wake.md) and GitHub issue #6. Do not confuse with tap-to-wake — touch is deep-slept while blanked.
+
 ## Memory reality (nRF52832)
 
 - Chip: **64 KB RAM** total — not all available to Python.
