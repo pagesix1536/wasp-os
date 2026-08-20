@@ -54,9 +54,9 @@ Do **not** use a generic Grok/dev container for wasp builds. Use the image from 
 
 Details:
 
-- [tooling.md](tooling.md) — helper scripts, Podman, DFU, wasptool
+- [tooling.md](tooling.md) — helper scripts, Podman, DFU, wasptool, sim battery screenshots
 - [apps.md](apps.md) — enabled apps, how to add new ones
-- [operations.md](operations.md) — **ops playbook**: `--exec`, OTA, boot/heap gotchas, BLE debug (also summarized in `AGENTS.md`)
+- [operations.md](operations.md) — **ops playbook**: `--exec`, OTA, boot/heap gotchas, BLE debug, status-bar battery meter (also summarized in `AGENTS.md`)
 - [raise-to-wake.md](raise-to-wake.md) — raise-to-wake research (deferred); pitfalls if revived (issue #6)
 
 ## Quick start

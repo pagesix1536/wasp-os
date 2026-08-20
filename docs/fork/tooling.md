@@ -7,6 +7,7 @@ Scripts and workflows added for day-to-day PineTime work on **Fedora + Podman + 
 | Tool | Role |
 |------|------|
 | [`tools/run-sim-podman.sh`](../../tools/run-sim-podman.sh) | Launch SDL simulator in the project image with working X11 |
+| [`tools/screenshot_battery_meter.py`](../../tools/screenshot_battery_meter.py) | Force sim battery level/charging and save status-bar shots |
 | [`tools/build-flash-pinetime.sh`](../../tools/build-flash-pinetime.sh) | Build `build-pinetime/micropython.zip` and/or OTA flash |
 | [`tools/bleak_legacy_dfu.py`](../../tools/bleak_legacy_dfu.py) | Nordic legacy DFU client (bleak), used by the flash helper |
 | [`tools/wasptool`](../../tools/wasptool) | Stock BLE REPL / RTC / file transfer (host; needs `tools/pynus`) |
@@ -71,6 +72,26 @@ Simulator input (host):
 - Touch / swipe as on the device (mouse)
 
 Stop: close the SDL window or Ctrl+C in the terminal.
+
+### Forced battery-meter screenshots
+
+The simulator’s `Battery` class wanders voltage over time. To pin level/charging and dump PNGs (issue #3):
+
+```sh
+xhost +local: >/dev/null 2>&1 || true
+podman run --rm \
+  --security-opt label=disable \
+  --volume="$PWD:/project/:z" \
+  --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
+  --env=DISPLAY="${DISPLAY}" \
+  --env=SDL_VIDEODRIVER=x11 \
+  --userns=keep-id --user="$(id -u):$(id -g)" --net=host \
+  --entrypoint="" \
+  "${WASP_DEV_IMAGE:-wasp-os/wasp-os-dev:0.1.0}" \
+  bash -lc 'cd /project && PYTHONPATH=.:wasp/boards/simulator:wasp:wasp/apps/system python3 tools/screenshot_battery_meter.py'
+```
+
+Writes `/tmp/wasp-battery-meter/battery-meter-*.png` (full sim skin) so shots do not clutter `res/` with UI icons. Meter behavior is documented in [operations.md](operations.md#status-bar-battery-meter-issue-3).
 
 If the image is missing:
 

@@ -203,7 +203,7 @@ Before claiming a change is done:
 | `docs/fork/README.md` | **This fork**: remotes, intent, quick start (Markdown) |
 | `docs/fork/tooling.md` | Helper scripts: Podman sim, build/flash, bleak DFU |
 | `docs/fork/apps.md` | Enabled apps (`wasp.toml`) + starter for new apps |
-| `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap gotchas, BLE debug |
+| `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap gotchas, BLE debug, battery meter |
 | `docs/fork/raise-to-wake.md` | Raise-to-wake design, INT pitfalls, tuning (issue #6) |
 | `AGENTS.md` | This file — agent/human project constitution |
 | `docs/install.rst` | Build, flash, prerequisites (upstream Sphinx) |

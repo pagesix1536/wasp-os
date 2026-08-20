@@ -43,7 +43,7 @@ System apps **Settings** and **Software** always appear on the launcher.
 
 Timeout choices: 5 / 10 / 15 / 30 / 60 seconds (default **15**). Takes effect immediately; not persisted across reboot (same as Brightness / Notification Level). Longer values use more battery.
 
-Widgets are built in `foreground()` and dropped in `background()` so the always-registered Settings instance does not keep controls on the heap while unused. Layout study / sim shots: `res/settings-layout-study/`.
+Widgets are built in `foreground()` and dropped in `background()` so the always-registered Settings instance does not keep controls on the heap while unused.
 
 **Memory app:** focus on **GC** for comparisons (after `gc.collect()`). **Now** is pre-collect and often looks artificially low. Legend and current ~**11 KB GC** baseline live in [operations.md](operations.md).
 

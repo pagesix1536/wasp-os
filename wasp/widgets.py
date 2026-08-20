@@ -15,11 +15,31 @@ import watch
 
 from micropython import const
 
+# BatteryMeter green regions, icon-relative.
+# Inset is 1px from the white shell on the *outer* edges only so body and
+# nub meet with no black seam: nub = top/left/right inset; body =
+# left/right/bottom inset. Screen x is icon_x + these offsets.
+_BATTERY_BODY_X = const(5)
+_BATTERY_BODY_Y = const(9)
+_BATTERY_BODY_W = const(14)
+_BATTERY_BODY_H = const(17)
+_BATTERY_NUB_X = const(9)
+_BATTERY_NUB_Y = const(6)
+_BATTERY_NUB_W = const(6)
+_BATTERY_NUB_H = const(3)
+# At or below this percent the shell and fill use critical red.
+_BATTERY_LOW_LEVEL = const(15)
+
 class BatteryMeter:
     """Battery meter widget.
 
     A simple battery meter with a charging indicator, will draw at the
     top-right of the display.
+
+    Charge fill is painted into the icon's black interior with a 1px inset
+    from the white shell on outer edges only (nub: top/left/right; body:
+    left/right/bottom) so body and nub form one continuous fill. The wide
+    body fills first; the narrow top nub fills after the body is full.
     """
     def __init__(self):
         self.level = -2
@@ -36,41 +56,64 @@ class BatteryMeter:
         """
         icon = icons.battery
         draw = watch.drawable
+        icon_x = 239 - icon[1]
 
         if watch.battery.charging():
             if self.level != -1:
-                draw.blit(icon, 239-icon[1], 0,
+                draw.blit(icon, icon_x, 0,
                              fg=wasp.system.theme('battery'))
                 self.level = -1
+            return
+
+        level = watch.battery.level()
+        if level == self.level:
+            return
+
+        low = level <= _BATTERY_LOW_LEVEL
+        was_low = self.level <= _BATTERY_LOW_LEVEL
+        if low:
+            rgb = 0xf800
         else:
-            level = watch.battery.level()
-            if level == self.level:
-                return
-
-
             green = level // 3
             if green > 31:
                 green = 31
-            red = 31-green
+            red = 31 - green
             rgb = (red << 11) + (green << 6)
 
-            if self.level < 0 or ((level > 5) ^ (self.level > 5)):
-                if level  > 5:
-                    draw.blit(icon, 239-icon[1], 0,
+        if self.level < 0 or (low ^ was_low):
+            if low:
+                draw.blit(icon, icon_x, 0, fg=0xf800)
+            else:
+                draw.blit(icon, icon_x, 0,
                              fg=wasp.system.theme('battery'))
-                else:
-                    rgb = 0xf800
-                    draw.blit(icon, 239-icon[1], 0, fg=0xf800)
 
-            w = icon[1] - 10
-            x = 239 - 5 - w
-            h = 2*level // 11
-            if 18 - h:
-                draw.fill(0, x, 9, w, 18 - h)
-            if h:
-                draw.fill(rgb, x, 27 - h, w, h)
+        # Bottom-up height across body then nub (max == 100%).
+        total_h = _BATTERY_BODY_H + _BATTERY_NUB_H
+        fill_h = (level * total_h) // 100
+        if fill_h <= _BATTERY_BODY_H:
+            body_fill = fill_h
+            nub_fill = 0
+        else:
+            body_fill = _BATTERY_BODY_H
+            nub_fill = fill_h - _BATTERY_BODY_H
 
-            self.level = level
+        bx = icon_x + _BATTERY_BODY_X
+        by = _BATTERY_BODY_Y
+        if _BATTERY_BODY_H - body_fill:
+            draw.fill(0, bx, by, _BATTERY_BODY_W, _BATTERY_BODY_H - body_fill)
+        if body_fill:
+            draw.fill(rgb, bx, by + _BATTERY_BODY_H - body_fill,
+                      _BATTERY_BODY_W, body_fill)
+
+        nx = icon_x + _BATTERY_NUB_X
+        ny = _BATTERY_NUB_Y
+        if _BATTERY_NUB_H - nub_fill:
+            draw.fill(0, nx, ny, _BATTERY_NUB_W, _BATTERY_NUB_H - nub_fill)
+        if nub_fill:
+            draw.fill(rgb, nx, ny + _BATTERY_NUB_H - nub_fill,
+                      _BATTERY_NUB_W, nub_fill)
+
+        self.level = level
 
 class Clock:
     """Small clock widget."""

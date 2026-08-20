@@ -111,11 +111,40 @@ Fix: reboot, or `wasp.watch.display.invert(True)` then redraw (panel “normal�
 - Phone↔watch **commands** (music transport) often work; **metadata/weather push** is flaky — don’t depend on it.  
 - Keep other house watches off during scans.
 
+## Status bar battery meter (issue #3)
+
+Implemented in `wasp/widgets.py` (`BatteryMeter`), drawn by `wasp.system.bar`.
+
+| Behavior | Detail |
+|----------|--------|
+| Artwork | Still uses `icons.battery` (outline + bolt from `res/battery.png`) |
+| Level fill | Opaque rectangles over the black interior (not a flood fill) |
+| Geometry | Body fills first, then the top nub; **100%** fills both |
+| Inset | **1px** black gutter on outer edges only — nub: top/left/right; body: left/right/bottom — so body and nub meet with **no black seam** |
+| Low battery | Shell + fill turn **red** at **≤ 15%** (`_BATTERY_LOW_LEVEL`) |
+| Charging | Re-blit icon only (bolt visible); no level bars |
+| % source | `watch.battery.level()` — linear **4.2 V → 100%**, **3.5 V → 0%** (`wasp/drivers/battery.py`) |
+
+Frozen icons/fonts live in **flash**, not heap. The meter’s cost is draw logic, not RAM from the PNG.
+
+### Simulator screenshots at fixed levels
+
+The sim battery voltage normally wanders. To force states and capture the status bar:
+
+```sh
+# Host: allow container → XWayland, then in project Podman image:
+PYTHONPATH=.:wasp/boards/simulator:wasp:wasp/apps/system \
+  python3 tools/screenshot_battery_meter.py
+```
+
+The script monkeypatches `watch.battery.level` / `.charging`, redraws `wasp.system.bar`, and writes under `/tmp/wasp-battery-meter/` (not `res/`). See [tooling.md](tooling.md).
+
 ## Simulator notes
 
 - `./tools/run-sim-podman.sh` (host X11). Prefer launching from a real terminal if agent-started SDL feels frozen.  
 - `make sim` copies `wasp.toml` apps into `wasp/apps/user/` — edit `apps/*.py` then **restart sim** or re-copy.  
 - Free RAM / SPI flash stats often **“Not supported”** / n/a in sim.
+- Agent UI checks: prefer a short script + `display.save_image` (as in `tools/screenshot_battery_meter.py`) over a long-lived interactive `make sim` window.
 
 ## Tracking work
 

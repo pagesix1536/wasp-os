@@ -82,14 +82,18 @@ class Battery(object):
     def level(self):
         """Estimate the battery level.
 
-        The current the estimation approach is extremely simple. It is assumes
-        the discharge from 4v to 3.5v is roughly linear and 4v is 100% and
-        that 3.5v is 5%. Below 3.5v the voltage will start to drop pretty
-        sharply so we will drop from 5% to 0% pretty fast... but we'll
-        live with that for now.
+        Simple linear map from pack voltage to percent:
 
-        :returns: Estimate battery level in percent.
+        - **4.2 V** (4200 mV) → **100%**
+        - **3.5 V** (3500 mV) → **0%**
+
+        Below 3.5 V the curve is clipped at 0%. Real Li-ion continues to fall
+        toward ~3.0 V, so the last few percent on a true fuel gauge are not
+        represented here — good enough for the status-bar icon.
+
+        :returns: Estimate battery level in percent (0–100).
         """
         mv = self.voltage_mv()
-        level = int((mv - 3500) / (700) * 100)  # 0.7V is 4.2-3.5V
+        # 700 mV span: 4.2 V full → 3.5 V empty
+        level = int((mv - 3500) / 700 * 100)
         return min(100, max(0, level))
