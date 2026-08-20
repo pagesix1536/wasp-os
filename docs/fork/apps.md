@@ -32,11 +32,15 @@ None currently. Heart / Weather / Music were dropped from `auto_load` (issue #2)
 
 System apps **Settings** and **Software** always appear on the launcher.
 
-**Settings → Timeout** (issue #5): adjusts how long the screen stays on
-before sleep (`wasp.system.blank_after`). Choices: 5 / 10 / 15 / 30 / 60
-seconds (default **15**). Takes effect immediately; not persisted across
-reboot (same as Brightness / Notification Level). Longer values use more
-battery.
+**Settings** (issues #5 / #13): four swipe pages — **Levels** (Brightness +
+Notification Level), **Sleep** (Timeout + Units), **Time**, **Date**
+(US **MM-DD-YY**). Timeout adjusts how long the screen stays on before
+sleep (`wasp.system.blank_after`); choices 5 / 10 / 15 / 30 / 60 seconds
+(default **15**). Takes effect immediately; not persisted across reboot
+(same as Brightness / Notification Level). Longer values use more
+battery. Widgets are built in `foreground()` and dropped in
+`background()` so the always-registered Settings instance does not keep
+controls on the heap while unused.
 
 ### Watch faces
 
