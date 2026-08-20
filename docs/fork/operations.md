@@ -124,6 +124,7 @@ Implemented in `wasp/widgets.py` (`BatteryMeter`), drawn by `wasp.system.bar`.
 | Low battery | Shell + fill turn **red** at **≤ 15%** (`_BATTERY_LOW_LEVEL`) |
 | Charging | Re-blit icon only (bolt visible); no level bars |
 | % source | `watch.battery.level()` — linear **4.2 V → 100%**, **3.5 V → 0%** (`wasp/drivers/battery.py`) |
+| Gadgetbridge | On glyph redraw only, `gadgetbridge.send_battery_status()` pushes `{"t":"status","bat",…,"volt",…,"chg",…}` if BLE UART is connected (no send while the screen is asleep / meter idle) |
 
 Frozen icons/fonts live in **flash**, not heap. The meter’s cost is draw logic, not RAM from the PNG.
 

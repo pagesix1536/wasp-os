@@ -30,6 +30,16 @@ _BATTERY_NUB_H = const(3)
 # At or below this percent the shell and fill use critical red.
 _BATTERY_LOW_LEVEL = const(15)
 
+def _notify_gb_battery(chg, bat=None):
+    """Tell Gadgetbridge after the battery glyph actually redraws."""
+    try:
+        from gadgetbridge import send_battery_status
+    except ImportError:
+        return
+    if bat is None:
+        bat = watch.battery.level()
+    send_battery_status(bat, chg)
+
 class BatteryMeter:
     """Battery meter widget.
 
@@ -40,6 +50,10 @@ class BatteryMeter:
     from the white shell on outer edges only (nub: top/left/right; body:
     left/right/bottom) so body and nub form one continuous fill. The wide
     body fills first; the narrow top nub fills after the body is full.
+
+    When the glyph is redrawn (level or charging state change), the meter
+    also asks :py:func:`gadgetbridge.send_battery_status` to push status to
+    the phone if BLE UART is connected.
     """
     def __init__(self):
         self.level = -2
@@ -63,6 +77,7 @@ class BatteryMeter:
                 draw.blit(icon, icon_x, 0,
                              fg=wasp.system.theme('battery'))
                 self.level = -1
+                _notify_gb_battery(True)
             return
 
         level = watch.battery.level()
@@ -114,6 +129,7 @@ class BatteryMeter:
                       _BATTERY_NUB_W, nub_fill)
 
         self.level = level
+        _notify_gb_battery(False, level)
 
 class Clock:
     """Small clock widget."""
