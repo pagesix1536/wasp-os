@@ -54,6 +54,7 @@ Do **not** use a generic Grok/dev container for wasp builds. Use the image from 
 
 Details:
 
+- [CHANGES.md](CHANGES.md) — **concise log** of fork fixes, updates, features, and tooling
 - [tooling.md](tooling.md) — helper scripts, Podman, DFU, wasptool, sim battery screenshots
 - [apps.md](apps.md) — enabled apps, how to add new ones
 - [operations.md](operations.md) — **ops playbook**: `--exec`, OTA, boot/heap gotchas, BLE debug, status-bar battery meter (also summarized in `AGENTS.md`)

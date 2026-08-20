@@ -201,6 +201,7 @@ Before claiming a change is done:
 |-----|---------|
 | `README.rst` | Intro, getting started, community (upstream stock) |
 | `docs/fork/README.md` | **This fork**: remotes, intent, quick start (Markdown) |
+| `docs/fork/CHANGES.md` | Concise log of fork fixes / features / tooling since diverge |
 | `docs/fork/tooling.md` | Helper scripts: Podman sim, build/flash, bleak DFU |
 | `docs/fork/apps.md` | Enabled apps (`wasp.toml`) + starter for new apps |
 | `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap gotchas, BLE debug, battery meter |
