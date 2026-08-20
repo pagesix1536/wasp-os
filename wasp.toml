@@ -5,9 +5,10 @@
 file = 'apps/alarm.py'
 quick_ring = true
 
+# Timer: frozen only (issue #2). Rarely used — enable in Software when wanted.
+# Not quick-ring: a running countdown still works once enabled (alarm + instance).
 [[app]]
 file = 'apps/timer.py'
-quick_ring = true
 
 # Heart / Weather / Music: frozen only (issue #2). Enable in Software when wanted.
 [[app]]

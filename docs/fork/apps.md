@@ -12,18 +12,18 @@ App selection is controlled by root [`wasp.toml`](../../wasp.toml). Nothing unde
 
 | File | Notes |
 |------|--------|
-| `apps/alarm.py` | Quick-ring |
-| `apps/timer.py` | Quick-ring; spinners build/drop with foreground/background (issue #2) |
+| `apps/alarm.py` | Quick-ring (must stay registered for scheduled alarms) |
 | *(system)* Step counter | Always registered by core — not in `wasp.toml` |
 
 ### Auto-loaded (launcher after boot)
 
-None currently. Heart / Weather / Music were dropped from `auto_load` (issue #2) to free heap; enable them in **Software** when wanted.
+None currently. Heart / Weather / Music / Timer were dropped from boot registration (issue #2) to free heap; enable them in **Software** when wanted.
 
 ### Frozen, enable in Software when wanted
 
 | File | Notes |
 |------|--------|
+| `apps/timer.py` | Kitchen timer; not quick-ring. Spinners build/drop with foreground/background. Enable when needed — a running countdown still works while the instance is registered |
 | `apps/heart.py` | HR; HRS3300 on device |
 | `apps/weather.py` | Gadgetbridge weather (phone→watch refresh flaky) |
 | `apps/music_player.py` | Gadgetbridge music controls (metadata flaky) |
@@ -45,7 +45,7 @@ Timeout choices: 5 / 10 / 15 / 30 / 60 seconds (default **15**). Takes effect im
 
 Widgets are built in `foreground()` and dropped in `background()` so the always-registered Settings instance does not keep controls on the heap while unused. Layout study / sim shots: `res/settings-layout-study/`.
 
-**Memory app:** focus on **GC** for comparisons (after `gc.collect()`). **Now** is pre-collect and often looks artificially low. Legend and a post-#13 baseline live in [operations.md](operations.md).
+**Memory app:** focus on **GC** for comparisons (after `gc.collect()`). **Now** is pre-collect and often looks artificially low. Legend and current ~**11 KB GC** baseline live in [operations.md](operations.md).
 
 ### Watch faces
 

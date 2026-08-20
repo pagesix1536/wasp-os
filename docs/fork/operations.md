@@ -10,7 +10,7 @@ How we actually develop, flash, and debug the watch. Complements [tooling.md](to
 - After SoftDevice + MicroPython + display/drivers + a few registered apps, **free heap is often ~8–12 KB**.
 - **Frozen** code lives in flash (cheap). **Registered instances**, widget trees, and **on-device compile** (`--exec` / freestead import) eat heap.
 - **Settings** (issue #13): always registered, but its sliders/spinners are built in `foreground()` and dropped in `background()` — idle Settings no longer parks a full widget tree on the heap.
-- **Timer** (issue #2): same pattern for its two quick-ring spinners; duration ints and alarm state survive `background()`.
+- **Timer** (issue #2): same spinner lifecycle; also **removed from quick ring** (frozen + Software enable). Alarm stays quick-ring; Timer does not need to be registered until you enable it.
 
 ### Reading the Memory app (`apps/memory.py`)
 
@@ -21,7 +21,15 @@ How we actually develop, flash, and debug the watch. Complements [tooling.md](to
 | **Now** | Opening Memory, before collect | Easy to look worse (fragmentation); don’t compare this |
 | **GC** | After `gc.collect()` while Memory is open | **Primary** apples-to-apples free-heap number |
 
-Post–issue #13 on-device sample (fresh reboot, then open Memory): Boot **24480**, Init **11040**, Now **5008**, GC **10448**. Treat **GC ≈ 10 KB** (and Init ≈ 11 KB) as the current lean-image baseline. `wasptool --memfree` is the same idea without the Memory UI cost.
+On-device baselines after fresh reboot + open Memory (Timer not enabled):
+
+| Milestone | GC |
+|-----------|---:|
+| Settings dual-panel + widget teardown (#13) | ~10448 |
+| Timer spinner teardown (#2) | ~10560 |
+| **Timer off quick ring (#2)** | **~11040** |
+
+Treat **GC ≈ 11 KB** as the current lean-image baseline. `wasptool --memfree` is the same idea without the Memory UI cost.
 
 ## Prefer `--exec` for live app testing
 

@@ -271,7 +271,9 @@ Full write-up: [`docs/fork/operations.md`](docs/fork/operations.md). Summary for
 - **`wasp.toml` + build + OTA** = ship lasting apps. Do **not** rely on SPI `apps/foo.py` freestead + Software: frozen package `apps` only has `system`/`user`, so `import apps.foo` fails.
 - `auto_load` / `quick_ring` = register at boot (always pay heap). Omit both = frozen but enable via Software when needed.
 - **Step counter** is always quick-ring from core `register_defaults()` (not toml). Settings/Software always launcher.
-- **Settings** (issue #13): four pages (Levels / Sleep / Time / Date); widgets build in `foreground()`, drop in `background()`. Compare free heap with Memory app **GC** (not **Now**); post-#13 baseline ~**10 KB GC** / ~**11 KB Init** — see [`docs/fork/operations.md`](docs/fork/operations.md).
+- **Settings** (issue #13): four pages (Levels / Sleep / Time / Date); widgets build in `foreground()`, drop in `background()`.
+- **Timer** (issue #2): frozen only (not quick-ring); enable in Software when wanted. Spinners also build/drop with foreground/background.
+- Compare free heap with Memory app **GC** (not **Now**); current lean baseline ~**11 KB GC** (Timer off the ring) — see [`docs/fork/operations.md`](docs/fork/operations.md).
 
 ### Commands (host BLE; one watch → omit `--device`)
 
