@@ -610,6 +610,56 @@ class Stopwatch:
 
             self._last_count = self.count
 
+class ChoiceView:
+    """Three-way prompt: This / All / Cancel.
+
+    ``value`` is ``'this'``, ``'all'``, or ``'cancel'`` after a successful
+    :py:meth:`touch`.
+    """
+
+    def __init__(self):
+        self.active = False
+        self.value = None
+        self._this = Button(20, 100, 90, 45, 'This')
+        self._all = Button(130, 100, 90, 45, 'All')
+        self._cancel = Button(55, 160, 130, 45, 'Cancel')
+
+    def draw(self, message='Delete?'):
+        draw = wasp.watch.drawable
+        mute = wasp.watch.display.mute
+
+        mute(True)
+        draw.set_color(wasp.system.theme('bright'))
+        draw.set_font(fonts.sans24)
+        draw.fill()
+        draw.string(message, 0, 40, width=240)
+        self._this.draw()
+        self._all.draw()
+        self._cancel.draw()
+        mute(False)
+
+        self.active = True
+        self.value = None
+
+    def touch(self, event):
+        if not self.active:
+            return False
+
+        if self._this.touch(event):
+            self.active = False
+            self.value = 'this'
+            return True
+        if self._all.touch(event):
+            self.active = False
+            self.value = 'all'
+            return True
+        if self._cancel.touch(event):
+            self.active = False
+            self.value = 'cancel'
+            return True
+
+        return False
+
 class ConfirmationView:
     """Confirmation widget allowing user confirmation of a setting."""
 
@@ -627,7 +677,7 @@ class ConfirmationView:
         draw.set_color(wasp.system.theme('bright'))
         draw.set_font(fonts.sans24)
         draw.fill()
-        draw.string(message, 0, 60)
+        draw.string(message, 0, 60, width=240)
         self._yes.draw()
         self._no.draw()
         mute(False)

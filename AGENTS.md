@@ -293,6 +293,8 @@ Full write-up: [`docs/fork/operations.md`](docs/fork/operations.md). Summary for
 ./tools/build-flash-pinetime.sh flash
 ```
 
+**OTA / DFU:** the development PineTime is usually paired to the owner's Android phone (Gadgetbridge). The agent cannot put the watch in DFU. **Build first, then ask the owner to hold the side button ~5s for PineDFU** (phone BT off or GB disconnected helps). Only then run `flash`. Do not scan/flash until they confirm it is in DFU.
+
 SoftDevice Nordic download often **403** — helper copies from bootloader submodule. Prefer `bleak_legacy_dfu` / `build-flash-pinetime.sh`, not gatttool.
 
 ### Boot / display gotchas
@@ -320,6 +322,7 @@ Full write-up: [`docs/fork/raise-to-wake.md`](docs/fork/raise-to-wake.md).
 - wasp ≈ **NUS-centric** (few GATT services). InfiniTime exposes many more — GB icons stay thin on wasp.
 - Music **transport** often works; **track metadata / weather refresh** phone→watch is flaky — don’t treat as reliable.
 - Watch→phone battery (`t:"status"`) is best-effort: needs GAP + NUS CCCD; `OSError` on notify is swallowed so Clock12h cannot CrashApp.
+- **Notifications (issue #11):** pull-down list, oldest first, kept until the user deletes. Phone `notify-` does **not** clear the watch copy. Heap cap is issue #16 (out of scope).
 - Keep other house watches powered off during scans.
 
 ### Simulator

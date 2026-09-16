@@ -325,10 +325,15 @@ class Manager():
 
     def notify(self, id, msg):
         self.notifications[id] = msg
+        if self.app is self.notifier:
+            self.notifier.note_arrived()
 
     def unnotify(self, id):
+        """Remove a notification by id (not used for Gadgetbridge notify-)."""
         if id in self.notifications:
             del self.notifications[id]
+            if self.app is self.notifier:
+                self.notifier.note_arrived()
 
     def toggle_music(self, state):
         self.musicstate = state

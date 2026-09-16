@@ -4,12 +4,13 @@
 """Pager applications
 ~~~~~~~~~~~~~~~~~~~~~
 
-The pager is used to present text based information to the user. It is
-primarily intended for notifications but is also used to provide debugging
-information when applications crash.
+The pager shows a long text message one screen at a time (crash dumps,
+haiku, …). Pull-down notifications are a separate list UI
+(:py:class:`NotificationApp`).
 """
 
 import wasp
+import fonts
 import icons
 
 import io
@@ -79,47 +80,153 @@ class PagerApp():
 
         mute(False)
 
-class NotificationApp(PagerApp):
+class NotificationApp():
+    """Pull-down notification list (issue #11).
+
+    Oldest first. Viewing does not delete. Swipe down for the next item
+    (past the last: clear-all Yes/No). Swipe up for the previous item
+    (from the first: watch face). Left/right: This / All / Cancel.
+    Bodies are truncated to one screen. Gadgetbridge ``notify-`` does
+    not remove entries.
+    """
     NAME = 'Notifications'
 
     def __init__(self):
-        super().__init__('')
-        self.confirmation_view = wasp.widgets.ConfirmationView()
+        self._index = 0
+        self._choice = None
+        self._confirm = None
 
     def foreground(self):
-        notes = wasp.system.notifications
-        note = notes.pop(next(iter(notes)))
-        title = note['title'] if 'title' in note else 'Untitled'
-        body = note['body'] if 'body' in note else ''
-        self._msg = '{}\n\n{}'.format(title, body)
-
-        wasp.system.request_event(wasp.EventMask.TOUCH)
-        super().foreground()
+        self._index = 0
+        wasp.system.request_event(
+            wasp.EventMask.TOUCH |
+            wasp.EventMask.SWIPE_UPDOWN |
+            wasp.EventMask.SWIPE_LEFTRIGHT)
+        self._draw()
 
     def background(self):
-        self.confirmation_view.active = False
-        super().background()
+        self._choice = None
+        self._confirm = None
+
+    def note_arrived(self):
+        """Redraw if a notify/unnotify happens while this app is showing."""
+        if self._prompt_active():
+            return
+        self._draw()
 
     def swipe(self, event):
-        if self.confirmation_view.active:
-            if event[0] == wasp.EventType.UP:
-                self.confirmation_view.active = False
-                self._draw()
-                return
-        else:
-            if event[0] == wasp.EventType.DOWN and self._page == 0:
-                self.confirmation_view.draw('Clear notifications?')
-                return
+        if self._prompt_active():
+            self._dismiss_prompt()
+            self._draw()
+            return
 
-        super().swipe(event)
+        direction = event[0]
+        if direction == wasp.EventType.DOWN:
+            n = len(wasp.system.notifications)
+            if n == 0:
+                wasp.system.navigate(wasp.EventType.BACK)
+                return
+            if self._index + 1 >= n:
+                if not self._confirm:
+                    self._confirm = wasp.widgets.ConfirmationView()
+                self._confirm.draw('Clear all?')
+                return
+            self._index += 1
+            self._draw()
+        elif direction == wasp.EventType.UP:
+            if self._index <= 0:
+                wasp.system.navigate(wasp.EventType.BACK)
+                return
+            self._index -= 1
+            self._draw()
+        elif direction == wasp.EventType.LEFT or direction == wasp.EventType.RIGHT:
+            if not self._choice:
+                self._choice = wasp.widgets.ChoiceView()
+            self._choice.draw('Delete?')
 
     def touch(self, event):
-        if self.confirmation_view.touch(event):
-            if self.confirmation_view.value:
-                wasp.system.notifications = {}
-                wasp.system.navigate(wasp.EventType.BACK)
+        if self._choice and self._choice.touch(event):
+            v = self._choice.value
+            if v == 'this':
+                self._delete_current()
+            elif v == 'all':
+                self._clear_all()
             else:
                 self._draw()
+            return
+
+        if self._confirm and self._confirm.touch(event):
+            if self._confirm.value:
+                self._clear_all()
+            else:
+                self._draw()
+
+    def _prompt_active(self):
+        return ((self._choice and self._choice.active) or
+                (self._confirm and self._confirm.active))
+
+    def _dismiss_prompt(self):
+        if self._choice:
+            self._choice.active = False
+        if self._confirm:
+            self._confirm.active = False
+
+    def _delete_current(self):
+        ids = list(wasp.system.notifications)
+        if ids:
+            del wasp.system.notifications[ids[self._index]]
+        if not wasp.system.notifications:
+            wasp.system.navigate(wasp.EventType.BACK)
+            return
+        self._draw()
+
+    def _clear_all(self):
+        wasp.system.notifications = {}
+        wasp.system.navigate(wasp.EventType.BACK)
+
+    def _draw(self):
+        notes = wasp.system.notifications
+        ids = list(notes)
+        n = len(ids)
+        if n == 0:
+            wasp.system.navigate(wasp.EventType.BACK)
+            return
+        if self._index >= n:
+            self._index = n - 1
+        if self._index < 0:
+            self._index = 0
+
+        note = notes[ids[self._index]]
+        title = note['title'] if 'title' in note else 'Untitled'
+        body = note['body'] if 'body' in note else ''
+
+        draw = wasp.watch.drawable
+        mute = wasp.watch.display.mute
+        mute(True)
+        # Buttons leave the drawable bg as UI blue; reset before fill.
+        draw.reset()
+        draw.fill()
+
+        draw.set_color(wasp.system.theme('mid'))
+        draw.string('{} of {}'.format(self._index + 1, n), 0, 4, width=240)
+
+        draw.set_color(wasp.system.theme('bright'))
+        y = 32
+        chunks = draw.wrap(title, 240)
+        if len(chunks) > 1:
+            draw.string(title[chunks[0]:chunks[1]].rstrip(), 0, y, width=240)
+        y += 28
+
+        if body:
+            chunks = draw.wrap(body, 240)
+            nlines = len(chunks) - 1
+            i = 0
+            while i < nlines and y + 24 <= 240:
+                draw.string(body[chunks[i]:chunks[i + 1]].rstrip(), 0, y)
+                y += 24
+                i += 1
+
+        mute(False)
 
 class CrashApp():
     """Crash handler application.

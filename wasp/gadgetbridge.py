@@ -5,8 +5,9 @@
 Currently implemented messages are:
 
  * t:"notify", id:int, src,title,subject,body,sender,tel:string - new
-   notification
- * t:"notify-", id:int - delete notification
+   notification (same id overwrites in place)
+ * t:"notify-", id:int - ignored on this fork (issue #11): the watch
+   keeps notifications until the user deletes them
  * t:"alarm", d:[{h,m},...] - set alarms
  * t:"find", n:bool - findDevice
  * t:"vibrate", n:int - vibrate
@@ -59,7 +60,8 @@ def GB(cmd):
             wasp.system.notify(id, cmd)
             wasp.watch.vibrator.pulse(ms=wasp.system.notify_duration)
         elif task == 'notify-':
-            wasp.system.unnotify(cmd['id'])
+            # Phone dismiss must not drop the watch copy (issue #11).
+            pass
         elif task == 'musicstate':
             wasp.system.toggle_music(cmd)
         elif task == 'musicinfo':

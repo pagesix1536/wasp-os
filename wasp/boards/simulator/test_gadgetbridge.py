@@ -42,6 +42,29 @@ def test_send_battery_sends_when_nus_ready(monkeypatch):
     assert '"chg":1' in sent[0]
 
 
+def test_notify_minus_does_not_unnotify():
+    wasp.system.notifications = {}
+    wasp.system.notify(7, {'title': 'Keep', 'body': 'me'})
+    gadgetbridge.GB({'t': 'notify-', 'id': 7})
+    assert 7 in wasp.system.notifications
+    assert wasp.system.notifications[7]['title'] == 'Keep'
+    wasp.system.notifications = {}
+
+
+def test_notify_same_id_overwrites():
+    wasp.system.notifications = {}
+    wasp.system.notify(3, {'title': 'A', 'body': 'one'})
+    gadgetbridge.GB({
+        't': 'notify',
+        'id': 3,
+        'title': 'B',
+        'body': 'two',
+    })
+    assert list(wasp.system.notifications) == [3]
+    assert wasp.system.notifications[3]['title'] == 'B'
+    wasp.system.notifications = {}
+
+
 def test_battery_meter_draw_survives_notify_error(monkeypatch):
     def boom(*args, **kwargs):
         raise OSError('Can not notify attribute value. status: 0x08')

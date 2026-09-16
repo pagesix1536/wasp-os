@@ -55,8 +55,8 @@ Do **not** rely on uploading to SPI `apps/foo.py` + Software checkbox for freest
 
 1. Edit `wasp.toml` (`[[app]]` / `[[watchface]]`, `quick_ring`, `auto_load`, `default`).
 2. `./tools/build-flash-pinetime.sh build`
-3. Watch awake → `./tools/wasptool --bootloader` (or hold side button ~5s for PineDFU).
-4. `./tools/build-flash-pinetime.sh flash`
+3. **Ask the owner** to put the watch in PineDFU (hold side button ~5s). The watch is normally paired to Android Gadgetbridge; the agent cannot enter DFU itself. Phone BT off / GB disconnected helps the host see PineDFU.
+4. After they confirm DFU: `./tools/build-flash-pinetime.sh flash`
 
 Helpers: SoftDevice 403 → copy from bootloader tree; DFU via `tools/bleak_legacy_dfu.py` + `.venv-dfu`. Details in [tooling.md](tooling.md).
 
@@ -109,6 +109,7 @@ Fix: reboot, or `wasp.watch.display.invert(True)` then redraw (panel “normal�
 - Omit `--device` if only one NUS/MicroPython watch is on.  
 - wasp advertises mainly **NUS** (few GATT services) vs InfiniTime’s many; Gadgetbridge icons stay thin.  
 - Phone↔watch **commands** (music transport) often work; **metadata/weather push** is flaky — don’t depend on it.  
+- **Notifications (issue #11):** swipe down from the clock shows the oldest kept item (`n of N`). Phone `notify-` does **not** dismiss the watch copy; delete on the watch (This / All, or clear-all at the end of the list). No heap cap yet (issue #16).
 - Keep other house watches off during scans.
 
 ## Status bar battery meter (issue #3)

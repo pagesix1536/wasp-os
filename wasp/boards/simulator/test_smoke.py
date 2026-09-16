@@ -70,6 +70,9 @@ def test_constructor(system, constructor):
         # if they don't have required files available
         if 'HaikuApp' not in str(constructor):
             raise
+    finally:
+        if 'NotificationApp' in str(constructor):
+            wasp.system.notifications = {}
 
 @pytest.mark.skip(reason='Stopclock (apps/stopwatch.py) is not in wasp.toml on this fork')
 def test_stopwatch(system):
@@ -158,3 +161,92 @@ def test_settings(system):
         system.step()
 
     assert(start_point == system.app._current_setting)
+
+
+def _seed_notes(system, n=3):
+    system.notifications = {}
+    for i in range(n):
+        system.notify(i + 1, {
+            'title': 'Note {}'.format(i + 1),
+            'body': 'body {}'.format(i + 1),
+        })
+
+
+def test_notification_stays_until_deleted(system):
+    _seed_notes(system, 2)
+    system.switch(system.notifier)
+    assert system.app is system.notifier
+    assert system.app._index == 0
+    assert list(system.notifications) == [1, 2]
+    system.app.swipe((wasp.EventType.UP, 120, 120))
+    assert system.app is system.quick_ring[0]
+    assert list(system.notifications) == [1, 2]
+    system.notifications = {}
+
+
+def test_notification_swipe_walks_oldest_first(system):
+    _seed_notes(system, 3)
+    system.switch(system.notifier)
+    assert system.app._index == 0
+    system.app.swipe((wasp.EventType.DOWN, 120, 120))
+    assert system.app._index == 1
+    system.app.swipe((wasp.EventType.DOWN, 120, 120))
+    assert system.app._index == 2
+    system.app.swipe((wasp.EventType.DOWN, 120, 120))
+    assert system.app._confirm and system.app._confirm.active
+    system.app.swipe((wasp.EventType.UP, 120, 120))
+    assert not system.app._confirm.active
+    assert system.app._index == 2
+    system.app.swipe((wasp.EventType.UP, 120, 120))
+    assert system.app._index == 1
+    system.switch(system.quick_ring[0])
+    system.notifications = {}
+
+
+def test_notification_cancel_restores_black(system):
+    _seed_notes(system, 1)
+    system.switch(system.notifier)
+    system.app.swipe((wasp.EventType.LEFT, 120, 120))
+    fills = []
+    orig = wasp.watch.drawable.fill
+
+    def wrap(bg=None, x=0, y=0, w=None, h=None):
+        if bg is None:
+            bg = wasp.watch.drawable._bgfg >> 16
+        fills.append(bg)
+        return orig(bg, x, y, w, h)
+
+    wasp.watch.drawable.fill = wrap
+    try:
+        system.app.touch((wasp.EventType.TOUCH, 120, 182))  # Cancel
+    finally:
+        wasp.watch.drawable.fill = orig
+    assert fills, 'expected a full-screen fill after Cancel'
+    assert fills[0] == 0
+    system.switch(system.quick_ring[0])
+    system.notifications = {}
+
+
+def test_notification_delete_this(system):
+    _seed_notes(system, 3)
+    system.switch(system.notifier)
+    system.app.swipe((wasp.EventType.RIGHT, 120, 120))
+    assert system.app._choice and system.app._choice.active
+    # "This" button: (20, 100, 90, 45)
+    system.app.touch((wasp.EventType.TOUCH, 65, 122))
+    assert list(system.notifications) == [2, 3]
+    assert system.app is system.notifier
+    assert system.app._index == 0
+    system.switch(system.quick_ring[0])
+    system.notifications = {}
+
+
+def test_notification_clear_all_from_end(system):
+    _seed_notes(system, 1)
+    system.switch(system.notifier)
+    system.app.swipe((wasp.EventType.DOWN, 120, 120))
+    assert system.app._confirm and system.app._confirm.active
+    # "Yes" button: (20, 140, 90, 45)
+    system.app.touch((wasp.EventType.TOUCH, 65, 162))
+    assert system.notifications == {}
+    assert system.app is system.quick_ring[0]
