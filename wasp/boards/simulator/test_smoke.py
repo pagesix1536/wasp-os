@@ -31,19 +31,16 @@ def test_step(system):
     system.step()
 
 def test_quick_ring(system):
-    names = [ x.NAME for x in system.quick_ring ]
-    assert('WeekClk' in names)
-    assert('Steps' in names)
-    assert('Stopclock' in names)
-    assert('Heart' in names)
+    # wasp.toml autoload + register_defaults() (Steps is always quick-ring).
+    names = [x.NAME for x in system.quick_ring]
+    assert set(names) == {'Clock12h', 'Alarm', 'Steps'}
 
 def test_launcher_ring(system):
-    names = [ x.NAME for x in system.launcher_ring ]
-    assert('Settings' in names)
-    assert('Software' in names)
+    names = [x.NAME for x in system.launcher_ring]
+    assert set(names) == {'Settings', 'Software'}
 
 @pytest.mark.parametrize("name",
-        ('Steps', 'Stopclock', 'Heart', 'Settings', 'Software'))
+        ('Clock12h', 'Alarm', 'Steps', 'Settings', 'Software'))
 def test_app(system, name):
     system.switch(system.apps[name])
     for i in range(4):
@@ -74,6 +71,7 @@ def test_constructor(system, constructor):
         if 'HaikuApp' not in str(constructor):
             raise
 
+@pytest.mark.skip(reason='Stopclock (apps/stopwatch.py) is not in wasp.toml on this fork')
 def test_stopwatch(system):
     system.switch(system.apps['Stopclock'])
 

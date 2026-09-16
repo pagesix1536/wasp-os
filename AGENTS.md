@@ -351,7 +351,7 @@ Other sim facts:
 - `make check` / unit tests can use `SDL_VIDEODRIVER=dummy` (no window). Screenshots need real X11 as above.
 - Enabled apps are **copied** to `wasp/apps/user/` from `wasp.toml`. After editing `apps/*.py`, `cp` into `wasp/apps/user/` (or re-run `tools/configure_wasp_apps.py wasp.toml`) before sim/import, or you will screenshot stale code.
 - Import the tree you just edited (`from apps.alarm import AlarmApp`) when the script constructs the app; the registered quick-ring instance may still be the `apps.user` copy.
-- Headless pytest that imports every `watch_faces/*.py` currently dies on this fork (`week_clock` wants `apps.user.clock`, which is not frozen). That is pre-existing; do not treat it as a regression in the app you are changing.
+- Headless pytest (`make check`) discovers system apps, every `apps/*.py`, and **only** watch faces listed in `wasp.toml` (so unused `week_clock` is not imported). Smoke tests assert this fork’s rings (Clock12h / Alarm / Steps, plus Settings and Software).
 - Free-RAM display is often **Not supported** in sim.
 - An **interactive** `make sim` window the agent launches can still steal/freeze host input. Prefer a short script + `save_image` for agent verification; leave the long-lived window to the owner.
 

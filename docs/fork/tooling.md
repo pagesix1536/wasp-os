@@ -240,7 +240,7 @@ wasp.system.run()
 
 | Goal | Command |
 |------|---------|
-| Simulator pytest | In container: `make check` (this fork still fails collection on `week_clock` → missing `apps.user.clock`; pre-existing) |
+| Simulator pytest | In container: `make check` (discovers `wasp.toml` faces only; smoke tests match this fork’s rings) |
 | Interactive sim | `./tools/run-sim-podman.sh` |
 | Full board tree | Container: `make -j$(nproc) BOARD=pinetime all` |
 | Micropython zip only | `./tools/build-flash-pinetime.sh build` |
