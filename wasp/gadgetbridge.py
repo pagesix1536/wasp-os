@@ -75,17 +75,44 @@ def GB(cmd):
         _error(msg.getvalue())
         msg.close()
 
+def _nus_ready():
+    """True when a NUS notify is likely to succeed.
+
+    ``watch.connected()`` is only GAP-connected. SoftDevice notify also
+    needs the TX CCCD enabled (``uart_enabled``). Either flag can stay
+    true for a while after the phone drops Bluetooth, so callers must
+    still tolerate ``OSError`` from ``print()``.
+    """
+    connected = getattr(wasp.watch, 'connected', None)
+    if not connected or not connected():
+        return False
+    enabled = getattr(wasp.watch, 'uart_enabled', None)
+    if enabled is None:
+        return True
+    return bool(enabled())
+
+
 def send_cmd(cmd = ''):
-    print('\r')
-    for i in range(0, len(cmd), 20):
-        print(cmd[i: i + 20], end='')
-        time.sleep(0.2)
-    print(' ')
-    print(' ')
+    """Write a Gadgetbridge JSON command to NUS.
+
+    ``print()`` becomes a GATT notify. That raises ``OSError`` (SoftDevice
+    ``0x08`` / ``NRF_ERROR_INVALID_STATE``) when the link looks up but
+    notify is not actually possible. Never let that escape — music, phone
+    finder, and the battery meter all sit on the UI path.
+    """
+    try:
+        print('\r')
+        for i in range(0, len(cmd), 20):
+            print(cmd[i: i + 20], end='')
+            time.sleep(0.2)
+        print(' ')
+        print(' ')
+    except OSError:
+        return
 
 
 def send_battery_status(bat, chg, volt_mv=None):
-    """Push battery status to Gadgetbridge if BLE UART is connected.
+    """Push battery status to Gadgetbridge if NUS notify is ready.
 
     Matches the Bangle.js → phone schema that Gadgetbridge handles as
     ``t:"status"`` (Espruino Gadgetbridge docs / BangleJSDeviceSupport):
@@ -98,7 +125,7 @@ def send_battery_status(bat, chg, volt_mv=None):
     :param chg: True/1 if charging, False/0 otherwise
     :param volt_mv: Optional millivolts; read from the fuel gauge if omitted
     """
-    if not wasp.watch.connected():
+    if not _nus_ready():
         return
 
     if volt_mv is None:

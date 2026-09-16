@@ -319,6 +319,7 @@ Full write-up: [`docs/fork/raise-to-wake.md`](docs/fork/raise-to-wake.md).
 
 - wasp ≈ **NUS-centric** (few GATT services). InfiniTime exposes many more — GB icons stay thin on wasp.
 - Music **transport** often works; **track metadata / weather refresh** phone→watch is flaky — don’t treat as reliable.
+- Watch→phone battery (`t:"status"`) is best-effort: needs GAP + NUS CCCD; `OSError` on notify is swallowed so Clock12h cannot CrashApp.
 - Keep other house watches powered off during scans.
 
 ### Simulator

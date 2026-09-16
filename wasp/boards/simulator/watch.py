@@ -213,5 +213,9 @@ vibrator = Vibrator(Pin('MOTOR', Pin.OUT, value=0), active_low=True)
 def connected():
     return not (int(rtc.uptime / 30) & 1)
 
+def uart_enabled():
+    """Simulator has no NUS CCCD; never pretend notify is armed."""
+    return False
+
 # Free memory cannot be measured on the simulator
 free = 0

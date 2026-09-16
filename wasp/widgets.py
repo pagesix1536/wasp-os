@@ -31,14 +31,20 @@ _BATTERY_NUB_H = const(3)
 _BATTERY_LOW_LEVEL = const(15)
 
 def _notify_gb_battery(chg, bat=None):
-    """Tell Gadgetbridge after the battery glyph actually redraws."""
+    """Tell Gadgetbridge after the battery glyph actually redraws.
+
+    Best-effort: a failed NUS notify must not take down the watch face.
+    """
     try:
         from gadgetbridge import send_battery_status
     except ImportError:
         return
     if bat is None:
         bat = watch.battery.level()
-    send_battery_status(bat, chg)
+    try:
+        send_battery_status(bat, chg)
+    except OSError:
+        return
 
 class BatteryMeter:
     """Battery meter widget.
@@ -53,7 +59,7 @@ class BatteryMeter:
 
     When the glyph is redrawn (level or charging state change), the meter
     also asks :py:func:`gadgetbridge.send_battery_status` to push status to
-    the phone if BLE UART is connected.
+    the phone if NUS notify is ready. Notify failures are ignored.
     """
     def __init__(self):
         self.level = -2

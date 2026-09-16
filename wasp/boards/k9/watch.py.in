@@ -34,6 +34,7 @@ from drivers.vibrator import Vibrator
 from flash.flash_spi import FLASH
 
 from ubluepy import uart_connected as connected
+from ubluepy import uart_enabled as uart_enabled
 
 class Backlight(object):
     lo = Pin("BL_LO", Pin.OUT, value=0)

@@ -6,6 +6,7 @@ Concise log of work on this personal PineTime fork since it diverged from upstre
 
 - **Battery meter fill (issue #3)** — 100% now fills body + nub as one continuous bar; 1px outer inset; red at ≤15%; charging still shows the bolt.
 - **Battery % docs** — `drivers/battery.py` comments match the real curve (4.2 V → 100%, 3.5 V → 0%).
+- **Gadgetbridge battery notify** — GAP `connected()` was not enough (phone BT off / stale link still tried NUS notify and CrashApp'd Clock12h). Require TX CCCD (`uart_enabled`) and swallow `OSError` from `print()`.
 
 ## Updates to existing apps / UI
 
