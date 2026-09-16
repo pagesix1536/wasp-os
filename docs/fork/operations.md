@@ -109,7 +109,7 @@ Fix: reboot, or `wasp.watch.display.invert(True)` then redraw (panel “normal�
 - Omit `--device` if only one NUS/MicroPython watch is on.  
 - wasp advertises mainly **NUS** (few GATT services) vs InfiniTime’s many; Gadgetbridge icons stay thin.  
 - Phone↔watch **commands** (music transport) often work; **metadata/weather push** is flaky — don’t depend on it.  
-- **Notifications (issue #11):** swipe down from the clock shows the oldest kept item (`n of N`). Phone `notify-` does **not** dismiss the watch copy; delete on the watch (This / All, or clear-all at the end of the list). No heap cap yet (issue #16).
+- **Notifications (issue #11 / #16):** swipe down from the clock shows the oldest kept item (`n of N`). Phone `notify-` does **not** dismiss the watch copy; delete on the watch (This / All, or clear-all at the end of the list). Heap cap **10** (new id drops oldest). Stored fields: `src`, `title`, `subject`, `body`, `sender` (clipped). Flash persistence is not implemented.
 - Keep other house watches off during scans.
 
 ## Status bar battery meter (issue #3)

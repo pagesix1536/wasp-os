@@ -322,7 +322,7 @@ Full write-up: [`docs/fork/raise-to-wake.md`](docs/fork/raise-to-wake.md).
 - wasp ≈ **NUS-centric** (few GATT services). InfiniTime exposes many more — GB icons stay thin on wasp.
 - Music **transport** often works; **track metadata / weather refresh** phone→watch is flaky — don’t treat as reliable.
 - Watch→phone battery (`t:"status"`) is best-effort: needs GAP + NUS CCCD; `OSError` on notify is swallowed so Clock12h cannot CrashApp.
-- **Notifications (issue #11):** pull-down list, oldest first, kept until the user deletes. Phone `notify-` does **not** clear the watch copy. Heap cap is issue #16 (out of scope).
+- **Notifications (issue #11):** pull-down list, oldest first, kept until the user deletes. Phone `notify-` does **not** clear the watch copy. Heap cap **10** (drop oldest); trim unused GB fields. Flash persistence for #16 is not implemented.
 - Keep other house watches powered off during scans.
 
 ### Simulator

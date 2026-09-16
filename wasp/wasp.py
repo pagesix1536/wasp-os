@@ -17,6 +17,7 @@
 import gc
 import machine
 import micropython
+from micropython import const
 import steplogger
 import sys
 import watch
@@ -26,6 +27,36 @@ import appregistry
 from apps.system.launcher import LauncherApp
 from apps.system.pager import PagerApp, CrashApp, NotificationApp
 from apps.system.step_counter import StepCounterApp
+
+_NOTE_CAP = const(10)
+_NOTE_TITLE = const(40)
+_NOTE_META = const(32)
+_NOTE_BODY = const(192)
+
+
+def _trim_notification(msg):
+    """Keep display fields only and clip strings (issue #16 heap cap)."""
+    out = {}
+    for k in ('src', 'title', 'subject', 'body', 'sender'):
+        if k not in msg:
+            continue
+        v = msg[k]
+        if type(v) is not str:
+            continue
+        v = v.strip()
+        if not v:
+            continue
+        if k == 'body':
+            n = _NOTE_BODY
+        elif k == 'title':
+            n = _NOTE_TITLE
+        else:
+            n = _NOTE_META
+        if len(v) > n:
+            v = v[:n]
+        out[k] = v
+    return out
+
 
 class EventType():
     """Enumerated interface actions.
@@ -324,7 +355,13 @@ class Manager():
                 self.sleep()
 
     def notify(self, id, msg):
-        self.notifications[id] = msg
+        msg = _trim_notification(msg)
+        notes = self.notifications
+        if id not in notes and len(notes) >= _NOTE_CAP:
+            del notes[next(iter(notes))]
+            if self.app is self.notifier:
+                self.notifier.note_dropped_oldest()
+        notes[id] = msg
         if self.app is self.notifier:
             self.notifier.note_arrived()
 

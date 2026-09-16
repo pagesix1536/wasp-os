@@ -5,7 +5,9 @@
 Currently implemented messages are:
 
  * t:"notify", id:int, src,title,subject,body,sender,tel:string - new
-   notification (same id overwrites in place)
+   notification (same id overwrites in place). The watch stores src,
+   title, subject, body, sender only (clipped); tel and extras are
+   dropped. At most 10 notes; a new id drops the oldest.
  * t:"notify-", id:int - ignored on this fork (issue #11): the watch
    keeps notifications until the user deletes them
  * t:"alarm", d:[{h,m},...] - set alarms

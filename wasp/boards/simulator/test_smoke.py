@@ -241,6 +241,17 @@ def test_notification_delete_this(system):
     system.notifications = {}
 
 
+def test_notification_eviction_keeps_view_index(system):
+    _seed_notes(system, 10)
+    system.switch(system.notifier)
+    system.app._index = 3
+    system.notify(11, {'title': 'Note 11', 'body': 'body 11'})
+    assert list(system.notifications) == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    assert system.app._index == 2
+    system.switch(system.quick_ring[0])
+    system.notifications = {}
+
+
 def test_notification_clear_all_from_end(system):
     _seed_notes(system, 1)
     system.switch(system.notifier)

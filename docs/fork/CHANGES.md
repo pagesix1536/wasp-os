@@ -16,7 +16,8 @@ Concise log of work on this personal PineTime fork since it diverged from upstre
 - **Timer (issue #2)** — spinners only while foregrounded; removed from quick ring (still frozen / Software-enable).
 - **Boot app set (issue #2)** — Heart / Weather / Music no longer `auto_load` (frozen for Software); leaner heap at boot.
 - **Default watch face (issue #1)** — sole face is US 12-hour `clock_us` (am/pm + US date); stock `clock` / `week_clock` not in `wasp.toml`.
-- **Notifications (issue #11)** — pull-down is a kept list, oldest first; `"n of N"` header; truncated body; swipe down/up walks the list (past last → clear-all, from first → clock); left/right → This / All / Cancel. Gadgetbridge `notify-` no longer drops watch copies (heap cap is issue #16).
+- **Notifications (issue #11)** — pull-down is a kept list, oldest first; `"n of N"` header; truncated body; swipe down/up walks the list (past last → clear-all, from first → clock); left/right → This / All / Cancel. Gadgetbridge `notify-` no longer drops watch copies.
+- **Notification heap (issue #16, RAM only)** — cap 10, new id drops oldest; store `src`/`title`/`subject`/`body`/`sender` (clipped); drop `tel`/`reply`/`act`/`img`. Pull-down: sans18 `n of N` in `ui`, then `src`/`sender`/title/subject in `mid`; only the body is sans24 `bright`. No flash file.
 
 ## New features / apps
 

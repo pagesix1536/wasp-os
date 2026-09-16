@@ -86,8 +86,12 @@ class NotificationApp():
     Oldest first. Viewing does not delete. Swipe down for the next item
     (past the last: clear-all Yes/No). Swipe up for the previous item
     (from the first: watch face). Left/right: This / All / Cancel.
-    Bodies are truncated to one screen. Gadgetbridge ``notify-`` does
-    not remove entries.
+    Headers are sans18: ``n of N`` in ``ui``, then ``src`` / ``sender`` /
+    title / subject in ``mid``. Only the body is sans24 ``bright``.
+    Caption skips empty/duplicates; subject only if it adds something;
+    body clipped to the remaining pixels.
+    Heap cap is 10 (drop oldest on a new id). Gadgetbridge ``notify-``
+    does not remove entries.
     """
     NAME = 'Notifications'
 
@@ -113,6 +117,13 @@ class NotificationApp():
         if self._prompt_active():
             return
         self._draw()
+
+    def note_dropped_oldest(self):
+        """Oldest item was evicted; keep the viewer on the same note."""
+        if self._index > 0:
+            self._index -= 1
+        elif self._prompt_active():
+            self._dismiss_prompt()
 
     def swipe(self, event):
         if self._prompt_active():
@@ -197,8 +208,19 @@ class NotificationApp():
             self._index = 0
 
         note = notes[ids[self._index]]
-        title = note['title'] if 'title' in note else 'Untitled'
+        title = note['title'] if 'title' in note else ''
         body = note['body'] if 'body' in note else ''
+        src = note['src'] if 'src' in note else ''
+        sender = note['sender'] if 'sender' in note else ''
+        subject = note['subject'] if 'subject' in note else ''
+
+        if sender and (sender == title or sender == src):
+            sender = ''
+        if src and src == title:
+            src = ''
+        if subject and (subject == title or subject == body or
+                        subject == sender or subject == src):
+            subject = ''
 
         draw = wasp.watch.drawable
         mute = wasp.watch.display.mute
@@ -207,17 +229,35 @@ class NotificationApp():
         draw.reset()
         draw.fill()
 
-        draw.set_color(wasp.system.theme('mid'))
+        draw.set_font(fonts.sans18)
+        draw.set_color(wasp.system.theme('ui'))
         draw.string('{} of {}'.format(self._index + 1, n), 0, 4, width=240)
 
-        draw.set_color(wasp.system.theme('bright'))
-        y = 32
-        chunks = draw.wrap(title, 240)
-        if len(chunks) > 1:
-            draw.string(title[chunks[0]:chunks[1]].rstrip(), 0, y, width=240)
-        y += 28
+        y = 26
+        draw.set_color(wasp.system.theme('mid'))
+        if src or sender:
+            parts = []
+            if src:
+                parts.append(src)
+            if sender:
+                parts.append(sender)
+            if self._draw_line(draw, ' / '.join(parts), y):
+                y += 20
+
+        if title:
+            if self._draw_line(draw, title, y):
+                y += 20
+        elif not src and not sender and not subject:
+            if self._draw_line(draw, 'Untitled', y):
+                y += 20
+
+        if subject:
+            if self._draw_line(draw, subject, y):
+                y += 20
 
         if body:
+            draw.set_font(fonts.sans24)
+            draw.set_color(wasp.system.theme('bright'))
             chunks = draw.wrap(body, 240)
             nlines = len(chunks) - 1
             i = 0
@@ -227,6 +267,13 @@ class NotificationApp():
                 i += 1
 
         mute(False)
+
+    def _draw_line(self, draw, s, y):
+        chunks = draw.wrap(s, 240)
+        if len(chunks) > 1:
+            draw.string(s[chunks[0]:chunks[1]].rstrip(), 0, y, width=240)
+            return True
+        return False
 
 class CrashApp():
     """Crash handler application.

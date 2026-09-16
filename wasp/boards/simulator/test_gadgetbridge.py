@@ -65,6 +65,56 @@ def test_notify_same_id_overwrites():
     wasp.system.notifications = {}
 
 
+def test_notify_trims_unused_fields():
+    wasp.system.notifications = {}
+    wasp.system.notify(1, {
+        'title': 'Alice',
+        'body': 'hi',
+        'src': 'SMS',
+        'sender': 'Alice',
+        'subject': '',
+        'tel': '+1555',
+        'reply': True,
+        'act': [{'title': 'X', 'hash': 1}],
+        'img': 'AAAA' * 40,
+    })
+    note = wasp.system.notifications[1]
+    assert note['title'] == 'Alice'
+    assert note['src'] == 'SMS'
+    assert note['sender'] == 'Alice'
+    assert 'subject' not in note
+    assert 'tel' not in note
+    assert 'reply' not in note
+    assert 'act' not in note
+    assert 'img' not in note
+    wasp.system.notifications = {}
+
+
+def test_notify_clips_long_body():
+    wasp.system.notifications = {}
+    wasp.system.notify(1, {'title': 'T', 'body': 'x' * 500})
+    assert len(wasp.system.notifications[1]['body']) == 192
+    wasp.system.notifications = {}
+
+
+def test_notify_cap_drops_oldest():
+    wasp.system.notifications = {}
+    for i in range(1, 12):
+        wasp.system.notify(i, {'title': str(i), 'body': 'x'})
+    assert list(wasp.system.notifications) == list(range(2, 12))
+    wasp.system.notifications = {}
+
+
+def test_notify_same_id_does_not_evict():
+    wasp.system.notifications = {}
+    for i in range(1, 11):
+        wasp.system.notify(i, {'title': str(i), 'body': 'x'})
+    wasp.system.notify(5, {'title': 'upd', 'body': 'y'})
+    assert list(wasp.system.notifications) == list(range(1, 11))
+    assert wasp.system.notifications[5]['title'] == 'upd'
+    wasp.system.notifications = {}
+
+
 def test_battery_meter_draw_survives_notify_error(monkeypatch):
     def boom(*args, **kwargs):
         raise OSError('Can not notify attribute value. status: 0x08')

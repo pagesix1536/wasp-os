@@ -14,14 +14,21 @@ OUT_DIR = '/tmp/wasp-notifications'
 def seed():
     wasp.system.notifications = {}
     wasp.system.notify(1, {
+        'src': 'Gmail',
+        'sender': 'Alice',
         'title': 'Alice',
+        'subject': 'Lunch tomorrow?',
         'body': 'Want to grab lunch after the meeting?',
+        'tel': '+15555550100',
     })
     wasp.system.notify(2, {
+        'src': 'SMS',
+        'sender': 'Work chat',
         'title': 'Work chat',
         'body': 'PR #11 is ready for another look when you have a minute.',
     })
     wasp.system.notify(3, {
+        'src': 'io.very.long.package.name.that.should.clip',
         'title': 'A very long title that will not fit on one line of the watch',
         'body': (
             'This body is intentionally long so truncation is visible. '
@@ -29,6 +36,7 @@ def seed():
             'Line six. Line seven. Line eight. Line nine. Line ten. '
             'This tail should not appear on the screen at all.'
         ),
+        'img': 'AAAA' * 80,
     })
 
 
