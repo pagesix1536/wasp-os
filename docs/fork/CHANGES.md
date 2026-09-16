@@ -25,6 +25,7 @@ Concise log of work on this personal PineTime fork since it diverged from upstre
 ## Tooling & infrastructure
 
 - Fedora **Podman** sim / build helpers (`run-sim-podman.sh`, `build-flash-pinetime.sh`).
+- **Omarchy (Arch/Hyprland) host port** — rootless podman (not sudo Docker), `build-dev-image.sh`, host `python-bleak`/`python-pexpect`, SELinux volume flags only when SELinux is present.
 - **bleak** legacy DFU client for modern BlueZ (replaces flaky gatttool path).
 - GitHub `origin` (`pagesix1536/wasp-os`); dropped personal Gitea remote docs.
 - Disabled fork CI: binary-dist workflow (`main.yml`) and simulator tests (`sim.yml`) — local Podman covers builds/tests.

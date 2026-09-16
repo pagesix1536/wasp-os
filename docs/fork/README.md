@@ -25,12 +25,12 @@ Fork-specific material (not expected upstream):
 |------|---------|
 | [`AGENTS.md`](../../AGENTS.md) | Project constitution for agents and humans |
 | [`docs/fork/`](.) | Markdown docs for this fork (you are here) |
-| [`tools/run-sim-podman.sh`](../../tools/run-sim-podman.sh) | Simulator in the project Podman image (Fedora/X11) |
+| [`tools/run-sim-podman.sh`](../../tools/run-sim-podman.sh) | Simulator in the project Podman image (X11/XWayland) |
 | [`tools/build-flash-pinetime.sh`](../../tools/build-flash-pinetime.sh) | Build `micropython.zip` + OTA flash helper |
 | [`tools/bleak_legacy_dfu.py`](../../tools/bleak_legacy_dfu.py) | Nordic legacy DFU over bleak (modern BlueZ) |
 | [`wasp.toml`](../../wasp.toml) | Custom app / watch-face set for this PineTime |
 
-Stock tree docs remain in reStructuredText under `docs/*.rst` and power the upstream Read the Docs site. Prefer **this directory** for anything specific to the fork, Fedora/Podman workflow, or personal app notes.
+Stock tree docs remain in reStructuredText under `docs/*.rst` and power the upstream Read the Docs site. Prefer **this directory** for anything specific to the fork, the host/Podman workflow, or personal app notes.
 
 ## Hardware target
 
@@ -46,11 +46,11 @@ Stock tree docs remain in reStructuredText under `docs/*.rst` and power the upst
 
 | Activity | Where |
 |----------|--------|
-| Edit apps, git, docs | Host (e.g. Fedora) |
-| `make sim`, `make check`, firmware builds | Project Ubuntu container (Podman) only |
+| Edit apps, git, docs | Host (Omarchy / previously Fedora) |
+| `make sim`, `make check`, firmware builds | Project Ubuntu container (rootless Podman) only |
 | OTA / REPL / wasptool | Host Bluetooth |
 
-Do **not** use a generic Grok/dev container for wasp builds. Use the image from `tools/docker/` (`make build-docker-image`).
+Do **not** use a generic Grok/dev container for wasp builds. Do **not** use Omarchy’s sudo-only Docker. Use rootless podman and `./tools/build-dev-image.sh`.
 
 Details:
 
@@ -63,10 +63,12 @@ Details:
 ## Quick start
 
 ```sh
-# Once: toolchain image + SoftDevice/submodules (see tooling.md)
-make build-docker-image
+# Once: host packages + toolchain image + SoftDevice/submodules (see tooling.md)
+omarchy pkg add podman fuse-overlayfs xorg-xhost python-pexpect python-bleak
+git submodule update --init
+./tools/build-dev-image.sh
 
-# Simulator (SDL window on host display)
+# Simulator (SDL window on host XWayland)
 ./tools/run-sim-podman.sh
 
 # Build firmware from wasp.toml, then OTA to PineDFU

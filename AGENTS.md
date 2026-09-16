@@ -97,7 +97,7 @@ make BOARD=pinetime clean         # clean board-specific build trees
 
 **Custom app set:** edit `wasp.toml` (quick_ring, auto_load, watch faces). Regenerates manifests on the next build.
 
-**Docker / Nix:** `make build-docker-image` + `make run-docker-image`, or `nix-shell tools/nix/shell.nix` — see `docs/install.rst`. The project Docker image is a **specialized wasp toolchain** (Ubuntu 24.04: Arm GCC, SDL2, Python deps, optional BLE helpers). Source is bind-mounted; tools live in the image. It is **not** the same as `~/git/grok-dev-env` (generic Grok AI shell).
+**Container / Nix:** `./tools/build-dev-image.sh` (rootless podman) then `./tools/run-sim-podman.sh` / `./tools/build-flash-pinetime.sh`. Stock `make build-docker-image` needs a working `docker` CLI (Omarchy’s Docker is sudo-only — do not use it here). Optional: `nix-shell tools/nix/shell.nix` — see `docs/install.rst`. The project image is a **specialized wasp toolchain** (Ubuntu 24.04: Arm GCC, SDL2, Python deps). Source is bind-mounted; tools live in the image. It is **not** the same as `~/git/grok-dev-env` (generic Grok AI shell).
 
 ### Talking to a watch (wasptool)
 
@@ -225,8 +225,9 @@ These are **local policy** for this fork / laptop setup. Prefer them over invent
 
 ### Host OS
 
-- Primary laptop: **Fedora** (current; e.g. Fedora 44+), often **Wayland**.
+- Primary laptop: **Omarchy** (Arch-based, Hyprland / Wayland). Previously Fedora 44 on the same Asus ROG Flow X13 hardware.
 - Official wasp release tags are old (~2021); this tree tracks **current git** (with occasional upstream activity). Still treat the project as **toolchain-sensitive** (MicroPython, SoftDevice, SDL sim).
+- Host Python is **3.14** (too new for the wasp toolchain). Do **not** install `arm-none-eabi-gcc` / SDL sim deps on the host; builds stay in the Ubuntu 24.04 project image.
 
 ### Active PineTime (on-device work)
 
@@ -240,7 +241,7 @@ Owner has multiple PineTimes; **only this one** is the development target unless
 | Bootloader | **wasp-bootloader** (via official `reloader-mcuboot.zip` 0.4.1; not re-flashed on master OTA) |
 | wasptool hint | Re-scan for device name; pass `--device` / MAC. Needs `tools/pynus` submodule |
 
-**OTA tooling note:** Phone Gadgetbridge flaky for this unit. Prefer `tools/bleak_legacy_dfu.py` + `.venv-dfu` (bleak). Stock `tools/ota-dfu` (gatttool) is unreliable on modern Fedora BlueZ. Zips for stock install live under `firmware-recovery/` (gitignored if preferred; local only).
+**OTA tooling note:** Phone Gadgetbridge flaky for this unit. Prefer `tools/bleak_legacy_dfu.py` with host **python-bleak** (`omarchy pkg add python-bleak python-pexpect`) or `.venv-dfu`. Stock `tools/ota-dfu` (gatttool) is unreliable on modern BlueZ. Zips for stock install live under `firmware-recovery/` (gitignored if preferred; local only).
 
 Other watches may exist in the house; keep them distant/off so scans stay unambiguous.
 
@@ -255,10 +256,12 @@ Grok runs **on the host OS** (not inside a generic coding container). That gives
 | Flash / REPL / OTA / `--rtc` | Host BLE + `wasptool`, and/or phone (Gadgetbridge) |
 
 - **Do not** use `~/git/grok-dev-env` (or any other generic Grok/dev shell image) for this project. It is out of scope and too limiting (no useful host display/BLE/Podman control for wasp work).
-- **Only** container for wasp-os: the project image from `tools/docker/` (`make build-docker-image` / `make run-docker-image`, or equivalent Podman). Use it for simulator, tests, and firmware builds — not as the editor/REPL for day-to-day coding.
-- **Reason for isolation:** installing the full stack from Fedora repos risks **newer** Python / SDL / `arm-none-eabi-gcc` than the project expects; containerizing on **Ubuntu 24.04** (as in `tools/docker/Dockerfile`) reduces that skew.
-- **Caveat:** the Docker image pins Ubuntu packages, **not** the historical Arm GNU-RM **10-2020-q4** binary named in the docs. If firmware builds fail in a toolchain-looking way, fall back to that official tarball before deep debugging.
-- Fedora practical notes: use **Podman** (often instead of Docker CE); **SELinux** volume labels (`:z`/`:Z`); **X11/XWayland** so the SDL simulator window can appear; BLE/`wasptool` still depends on the **host** Bluetooth stack.
+- **Only** container for wasp-os: the project image from `tools/docker/` (`./tools/build-dev-image.sh`, not stock `make build-docker-image`). Use it for simulator, tests, and firmware builds — not as the editor/REPL for day-to-day coding.
+- **Reason for isolation:** host distro packages (now Arch/Omarchy, previously Fedora) are **newer** Python / SDL / `arm-none-eabi-gcc` than the project expects; containerizing on **Ubuntu 24.04** (as in `tools/docker/Dockerfile`) reduces that skew.
+- **Caveat:** the image pins Ubuntu packages, **not** the historical Arm GNU-RM **10-2020-q4** binary named in the docs. If firmware builds fail in a toolchain-looking way, fall back to that official tarball before deep debugging.
+- **Podman, not Omarchy Docker.** Omarchy installs Docker but does **not** add the user to the `docker` group (that group is passwordless root). Do **not** run `omarchy-setup-security-sudoless-docker` for this project. Install rootless **podman** (`omarchy pkg add podman fuse-overlayfs`) and keep BLE/`wasptool` on the **host** Bluetooth stack.
+- **Display:** Hyprland XWayland (`DISPLAY=:0`, `/tmp/.X11-unix`). Install `xorg-xhost` so `run-sim-podman.sh` can `xhost +local:`. No SELinux on Omarchy — volume `:z` is only applied when `/sys/fs/selinux/enforce` exists (old Fedora path).
+- Host BLE packages: `python-pexpect` (wasptool), `python-bleak` (OTA), `python-dbus` + `python-gobject` (pynus/tealblue; already on a typical Omarchy install). Check with `./tools/check-host-env.sh`.
 
 ## Operational playbook (read this in new sessions)
 
@@ -329,8 +332,7 @@ Owner interactive session: `./tools/run-sim-podman.sh` (X11/XWayland). Tab or cl
 xhost +local: >/dev/null 2>&1 || true
 
 podman run --rm \
-  --security-opt label=disable \
-  --volume="$PWD:/project/:z" \
+  --volume="$PWD:/project/" \
   --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
   --env=DISPLAY="${DISPLAY}" \
   --env=SDL_VIDEODRIVER=x11 \
@@ -339,6 +341,8 @@ podman run --rm \
   "${WASP_DEV_IMAGE:-wasp-os/wasp-os-dev:0.1.0}" \
   bash -lc 'cd /project && PYTHONPATH=.:wasp/boards/simulator:wasp:wasp/apps/system python3 script.py'
 ```
+
+(On Fedora/SELinux, add `--security-opt label=disable` and `:z` on the project volume — `run-sim-podman.sh` does that automatically.)
 
 In `script.py`: `import wasp`, `import display`, `wasp.system.secondary_init()`, construct or `switch()` the app, set `app.page` / inject state, `wasp.system.switch(app)`, `display.window.refresh()`, then `display.save_image(display.windowsurface, "res/Whatever.png")`. Pick a **distinct** filename; `s` and `{NAME}App.png` overwrite.
 
@@ -366,4 +370,4 @@ Other sim facts:
 - Do not treat experimental Grok cross-session memory as a substitute for this file or `docs/fork/`; keep durable project facts here.
 - Official docs site may be more polished than in-tree RST; when they disagree on install steps, prefer `docs/install.rst` for this tree — but prefer **`docs/fork/`** for fork ops.
 - Prefer SSH for `origin` (`git@github.com:pagesix1536/wasp-os.git`).
-- Setup focus: **host Podman + project Ubuntu image** for `make check` / `make sim` / firmware builds. Edit on the host; never route wasp workflow through grok-dev-env.
+- Setup focus: **host rootless Podman + project Ubuntu image** for `make check` / `make sim` / firmware builds. Edit on the host; never route wasp workflow through grok-dev-env. After a distro reinstall, run `./tools/check-host-env.sh` then `./tools/build-dev-image.sh`.

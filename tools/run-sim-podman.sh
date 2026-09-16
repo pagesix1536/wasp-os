@@ -1,50 +1,30 @@
 #!/usr/bin/env bash
-# Launch wasp-os simulator in the project Podman image with X11 on Fedora.
-# Stock `make run-docker-image` uses --userns=host and no X11/SELinux flags;
-# that fails to write the bind mount and cannot open SDL windows here.
+# Launch wasp-os simulator in the project toolchain image with X11/XWayland.
+# Stock `make run-docker-image` has no X11 flags and (on Omarchy) Docker is
+# sudo-only; this helper uses rootless podman.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=wasp-engine.sh
+source "$ROOT/tools/wasp-engine.sh"
 
 IMAGE="${WASP_DEV_IMAGE:-wasp-os/wasp-os-dev:0.1.0}"
 NAME="${WASP_SIM_NAME:-wasp-sim}"
+ENGINE="$(wasp_pick_engine)"
 
-if ! podman image exists "$IMAGE"; then
-  echo "Image $IMAGE not found. Build with: make build-docker-image" >&2
+if ! wasp_image_exists "$ENGINE" "$IMAGE"; then
+  echo "Image $IMAGE not found. Build with: ./tools/build-dev-image.sh" >&2
   exit 1
 fi
 
-if [[ -z "${DISPLAY:-}" ]]; then
-  echo "DISPLAY is not set; cannot open SDL window." >&2
-  exit 1
-fi
-
-# Allow local X clients (XWayland)
-if command -v xhost >/dev/null 2>&1; then
-  xhost +local: >/dev/null 2>&1 || true
-fi
-
-XAUTH="${XAUTHORITY:-}"
-AUTH_ARGS=()
-if [[ -n "$XAUTH" && -r "$XAUTH" ]]; then
-  AUTH_ARGS+=(--volume="${XAUTH}:${XAUTH}:ro" --env=XAUTHORITY="${XAUTH}")
-fi
+RUN_ARGS=(--rm -it --name "$NAME")
+wasp_fill_project_args RUN_ARGS "$ENGINE" "$ROOT"
+wasp_fill_x11_args RUN_ARGS
 
 # Stop a previous sim if still running
-podman rm -f "$NAME" >/dev/null 2>&1 || true
+"$ENGINE" rm -f "$NAME" >/dev/null 2>&1 || true
 
-exec podman run --rm -it \
-  --name "$NAME" \
-  --security-opt label=disable \
-  --volume="${ROOT}:/project/:z" \
-  --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
-  "${AUTH_ARGS[@]}" \
-  --env=DISPLAY="${DISPLAY}" \
-  --env=SDL_VIDEODRIVER=x11 \
-  --userns=keep-id \
-  --user="$(id -u):$(id -g)" \
-  --net=host \
-  --entrypoint="" \
+exec "$ENGINE" run "${RUN_ARGS[@]}" \
   "$IMAGE" \
   bash -lc 'cd /project && make sim'

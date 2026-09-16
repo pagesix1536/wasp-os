@@ -1,17 +1,22 @@
 # Helper tooling (this fork)
 
-Scripts and workflows added for day-to-day PineTime work on **Fedora + Podman + host Bluetooth**. Stock wasp tools (`wasptool`, Makefile targets, Docker image) remain available; these helpers paper over SELinux/X11, SoftDevice download issues, and unreliable gatttool DFU on modern BlueZ.
+Scripts and workflows added for day-to-day PineTime work on **Omarchy (Arch + Hyprland) + rootless Podman + host Bluetooth**. The same helpers still work on Fedora if Podman and SELinux volume labels are present. Stock wasp tools (`wasptool`, Makefile targets, Docker image) remain available; these helpers paper over host-distro skew, X11/XWayland, SoftDevice download issues, and unreliable gatttool DFU on modern BlueZ.
+
+After a fresh OS install, run `./tools/check-host-env.sh` to see what is missing.
 
 ## Overview
 
 | Tool | Role |
 |------|------|
+| [`tools/check-host-env.sh`](../../tools/check-host-env.sh) | Read-only checklist (podman, image, X11, BLE Python, submodules) |
+| [`tools/build-dev-image.sh`](../../tools/build-dev-image.sh) | Build `wasp-os/wasp-os-dev:0.1.0` with rootless podman |
 | [`tools/run-sim-podman.sh`](../../tools/run-sim-podman.sh) | Launch SDL simulator in the project image with working X11 |
+| [`tools/sim_smoke_screenshot.py`](../../tools/sim_smoke_screenshot.py) | One-shot sim init + PNG (no event loop) |
 | [`tools/screenshot_battery_meter.py`](../../tools/screenshot_battery_meter.py) | Force sim battery level/charging and save status-bar shots |
 | [`tools/build-flash-pinetime.sh`](../../tools/build-flash-pinetime.sh) | Build `build-pinetime/micropython.zip` and/or OTA flash |
 | [`tools/bleak_legacy_dfu.py`](../../tools/bleak_legacy_dfu.py) | Nordic legacy DFU client (bleak), used by the flash helper |
 | [`tools/wasptool`](../../tools/wasptool) | Stock BLE REPL / RTC / file transfer (host; needs `tools/pynus`) |
-| `make build-docker-image` | Build `wasp-os/wasp-os-dev:0.1.0` (Ubuntu 24.04 toolchain) |
+| [`tools/wasp-engine.sh`](../../tools/wasp-engine.sh) | Shared podman flags (sourced; not run directly) |
 
 ### GitHub Actions on this fork
 
@@ -32,21 +37,35 @@ Environment overrides used by the helpers:
 
 ---
 
+## Host packages (Omarchy)
+
+Omarchy already has Docker, but the daemon is **sudo-only** (the `docker` group is treated as passwordless root). Do **not** enable sudoless Docker for this project. Install rootless Podman and the host BLE/X11 bits:
+
+```sh
+omarchy pkg add podman fuse-overlayfs xorg-xhost python-pexpect python-bleak
+git submodule update --init
+./tools/check-host-env.sh
+```
+
+`python-dbus` and `python-gobject` (pynus/tealblue) are typically already installed. `wasptool` is `#!/usr/bin/env python3` — it needs **system** `pexpect`, not only a venv.
+
 ## Project container image
 
 Builds and the simulator run **inside** the image from `tools/docker/`, not on the host toolchain.
 
 ```sh
-make build-docker-image
+./tools/build-dev-image.sh
 # → wasp-os/wasp-os-dev:0.1.0
 ```
 
-Notes for Fedora/Podman:
+`make build-docker-image` (upstream) runs `docker compose` and will fail on Omarchy with `permission denied` on `/var/run/docker.sock`. Use the podman helper.
 
-- Prefer **Podman** over Docker CE.
-- Source is bind-mounted with SELinux `:z` (`/project/:z`).
-- Simulator needs **X11/XWayland** (`DISPLAY`, `/tmp/.X11-unix`) and typically `--security-opt label=disable` so SDL can open the socket (stock `make run-docker-image` is not enough here).
-- Use `--userns=keep-id` so files written on the mount match the host user (avoid `--userns=host` for this workflow).
+Notes:
+
+- Prefer **rootless Podman**. Helpers never `sudo docker`.
+- Source is bind-mounted at `/project`. SELinux `:z` and `label=disable` are added **only** when `/sys/fs/selinux/enforce` exists (Fedora). Omarchy has no SELinux.
+- Simulator needs **X11/XWayland** (`DISPLAY`, `/tmp/.X11-unix`). Hyprland on this laptop runs XWayland as `:0`.
+- Use `--userns=keep-id` so files written on the mount match the host user.
 - BLE/OTA stays on the **host** stack; the container is for compile + sim only.
 
 ---
@@ -73,6 +92,18 @@ Simulator input (host):
 
 Stop: close the SDL window or Ctrl+C in the terminal.
 
+One-shot screenshot (no event loop; good for agents and X11 smoke tests):
+
+```sh
+./tools/run-sim-podman.sh   # interactive
+# or:
+podman run --rm --volume="$PWD:/project/" --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
+  --env=DISPLAY="${DISPLAY}" --env=SDL_VIDEODRIVER=x11 \
+  --userns=keep-id --user="$(id -u):$(id -g)" --net=host --entrypoint="" \
+  "${WASP_DEV_IMAGE:-wasp-os/wasp-os-dev:0.1.0}" \
+  bash -lc 'cd /project && PYTHONPATH=.:wasp/boards/simulator:wasp:wasp/apps/system python3 tools/sim_smoke_screenshot.py'
+```
+
 ### Forced battery-meter screenshots
 
 The simulator’s `Battery` class wanders voltage over time. To pin level/charging and dump PNGs (issue #3):
@@ -80,8 +111,7 @@ The simulator’s `Battery` class wanders voltage over time. To pin level/chargi
 ```sh
 xhost +local: >/dev/null 2>&1 || true
 podman run --rm \
-  --security-opt label=disable \
-  --volume="$PWD:/project/:z" \
+  --volume="$PWD:/project/" \
   --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw \
   --env=DISPLAY="${DISPLAY}" \
   --env=SDL_VIDEODRIVER=x11 \
@@ -96,7 +126,7 @@ Writes `/tmp/wasp-battery-meter/battery-meter-*.png` (full sim skin) so shots do
 If the image is missing:
 
 ```sh
-make build-docker-image
+./tools/build-dev-image.sh
 ```
 
 ---
@@ -123,12 +153,15 @@ First-time submodule init can be slow; subsequent builds are incremental.
 
 ### Flash path (OTA)
 
-Prerequisites on the **host**:
+Prerequisites on the **host**: `python3` that can `import bleak` — either the distro package or a venv:
 
 ```sh
+# Omarchy (preferred)
+omarchy pkg add python-bleak python-pexpect
+
+# Optional venv instead (any distro)
 python3 -m venv .venv-dfu
 .venv-dfu/bin/pip install bleak pexpect
-# tools/bleak_legacy_dfu.py is already in the tree
 ```
 
 On the watch:
@@ -160,7 +193,7 @@ make submodules   # or via: ./tools/build-flash-pinetime.sh build
 
 ## DFU client: `bleak_legacy_dfu.py`
 
-Nordic **legacy DFU** (SDK ≤ 11 style) over [bleak](https://github.com/hbldh/bleak). Mirrors the protocol of stock `tools/ota-dfu` (gatttool), which often fails GATT discovery on modern Fedora BlueZ.
+Nordic **legacy DFU** (SDK ≤ 11 style) over [bleak](https://github.com/hbldh/bleak). Mirrors the protocol of stock `tools/ota-dfu` (gatttool), which often fails GATT discovery on modern BlueZ.
 
 Typical direct use:
 
@@ -207,7 +240,7 @@ wasp.system.run()
 
 | Goal | Command |
 |------|---------|
-| Simulator pytest | In container: `make check` |
+| Simulator pytest | In container: `make check` (this fork still fails collection on `week_clock` → missing `apps.user.clock`; pre-existing) |
 | Interactive sim | `./tools/run-sim-podman.sh` |
 | Full board tree | Container: `make -j$(nproc) BOARD=pinetime all` |
 | Micropython zip only | `./tools/build-flash-pinetime.sh build` |
@@ -224,8 +257,10 @@ Free memory on device (when relevant):
 
 | Symptom | Likely fix |
 |---------|------------|
-| Sim: no window / permission on `/tmp/.X11-unix` | Use `run-sim-podman.sh` (not stock docker run); ensure Wayland session has XWayland/`DISPLAY` |
-| Sim: image not found | `make build-docker-image` |
+| Sim: no window / permission on `/tmp/.X11-unix` | Use `run-sim-podman.sh` (not stock docker run); Hyprland needs XWayland/`DISPLAY`; install `xorg-xhost` |
+| Sim: image not found | `./tools/build-dev-image.sh` |
+| `docker` permission denied on Omarchy | Expected — do not join the docker group; use podman |
+| `wasptool` `ModuleNotFoundError: pexpect` | `omarchy pkg add python-pexpect` (shebang is system python3) |
 | Build: SoftDevice / 403 | Let the flash helper copy from bootloader; `make submodules` |
 | OTA: PineDFU not found | Hold button longer; phone BT off; set `WASP_DFU_MAC` |
 | OTA: gatttool/`ota-dfu` fails | Use `bleak_legacy_dfu.py` / `build-flash-pinetime.sh flash` |

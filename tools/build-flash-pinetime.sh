@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build PineTime micropython.zip in the project Podman image, and/or OTA it
+# Build PineTime micropython.zip in the project toolchain image, and/or OTA it
 # to a watch already running the wasp bootloader (PineDFU mode).
 #
 # Usage:
@@ -9,16 +9,18 @@
 #   ./tools/build-flash-pinetime.sh shell    # interactive build container
 #
 # Prerequisites:
-#   - podman + image wasp-os/wasp-os-dev:0.1.0  (make build-docker-image)
-#   - submodules initialized once:  make submodules  (or first 'build' does it)
+#   - rootless podman + image wasp-os/wasp-os-dev:0.1.0  (./tools/build-dev-image.sh)
+#   - submodules initialized once:  git submodule update --init  (or first 'build')
 #   - SoftDevice s132 (see ensure_softdevice below; Nordic URL often 403)
 #   - for flash: watch in OTA/PineDFU (hold side button ~5s), phone BT off
-#   - for flash: .venv-dfu with bleak + tools/bleak_legacy_dfu.py
+#   - for flash: python3 with bleak (omarchy pkg add python-bleak) or .venv-dfu
 #
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=wasp-engine.sh
+source "$ROOT/tools/wasp-engine.sh"
 
 IMAGE="${WASP_DEV_IMAGE:-wasp-os/wasp-os-dev:0.1.0}"
 ZIP="${WASP_MPY_ZIP:-$ROOT/build-pinetime/micropython.zip}"
@@ -26,23 +28,16 @@ BOARD="${BOARD:-pinetime}"
 CMD="${1:-all}"
 
 podman_build() {
-  if ! command -v podman >/dev/null 2>&1; then
-    echo "podman not found" >&2
-    exit 1
-  fi
-  if ! podman image exists "$IMAGE"; then
-    echo "Image $IMAGE not found. Run: make build-docker-image" >&2
+  local engine
+  engine="$(wasp_pick_engine)"
+  if ! wasp_image_exists "$engine" "$IMAGE"; then
+    echo "Image $IMAGE not found. Run: ./tools/build-dev-image.sh" >&2
     exit 1
   fi
 
-  # shellcheck disable=SC2086
-  podman run --rm \
-    --name wasp-build \
-    --volume="${ROOT}:/project/:z" \
-    --userns=keep-id \
-    --user="$(id -u):$(id -g)" \
-    --net=host \
-    --entrypoint="" \
+  local args=(--rm --name wasp-build)
+  wasp_fill_project_args args "$engine" "$ROOT"
+  "$engine" run "${args[@]}" \
     "$IMAGE" \
     bash -lc "cd /project && $*"
 }
@@ -76,7 +71,9 @@ do_build() {
   echo "=== Ensuring SoftDevice ==="
   ensure_softdevice
 
-  if [[ ! -d micropython/ports/nrf ]]; then
+  # ports/nrf exists as soon as the micropython submodule is checked out;
+  # nested libs (nrfx, mbedtls, ...) still need `make submodules`.
+  if [[ ! -d micropython/lib/nrfx/drivers ]]; then
     echo "=== make submodules ==="
     podman_build "make submodules"
     ensure_softdevice
@@ -94,12 +91,8 @@ do_build() {
 }
 
 find_pinedfu() {
-  # Prefer host venv with bleak
-  local py="${ROOT}/.venv-dfu/bin/python"
-  if [[ ! -x "$py" ]]; then
-    echo "Missing $py — create with: python3 -m venv .venv-dfu && .venv-dfu/bin/pip install bleak pexpect" >&2
-    exit 1
-  fi
+  local py
+  py="$(wasp_dfu_python "$ROOT")"
   if [[ ! -f "${ROOT}/tools/bleak_legacy_dfu.py" ]]; then
     echo "Missing tools/bleak_legacy_dfu.py" >&2
     exit 1
@@ -136,6 +129,9 @@ do_flash() {
     exit 1
   fi
 
+  local py
+  py="$(wasp_dfu_python "$ROOT")"
+
   local mac="${WASP_DFU_MAC:-}"
   if [[ -z "$mac" ]]; then
     mac="$(find_pinedfu)" || {
@@ -146,7 +142,7 @@ do_flash() {
   fi
 
   echo "=== OTA $ZIP → $mac ==="
-  "${ROOT}/.venv-dfu/bin/python" "${ROOT}/tools/bleak_legacy_dfu.py" \
+  "$py" "${ROOT}/tools/bleak_legacy_dfu.py" \
     -z "$ZIP" \
     -a "$mac" \
     --prn 10
@@ -154,14 +150,12 @@ do_flash() {
 }
 
 do_shell() {
+  local engine
+  engine="$(wasp_pick_engine)"
   echo "Interactive build container (project mounted at /project)"
-  podman run --rm -it \
-    --name wasp-build-shell \
-    --volume="${ROOT}:/project/:z" \
-    --userns=keep-id \
-    --user="$(id -u):$(id -g)" \
-    --net=host \
-    --entrypoint="" \
+  local args=(--rm -it --name wasp-build-shell)
+  wasp_fill_project_args args "$engine" "$ROOT"
+  "$engine" run "${args[@]}" \
     "$IMAGE" \
     bash -lc 'cd /project && exec bash'
 }

@@ -18,3 +18,6 @@ wasp/appregistry.py
 # Simulator / local runtime state (apps write these into the project CWD)
 Morse.txt
 alarms.txt
+
+# Host BLE venv (optional; Omarchy can use distro python-bleak instead)
+.venv-dfu/
