@@ -16,8 +16,10 @@ Pages (swipe up/down):
 4. **Date**
 
 Timeout writes ``wasp.system.blank_after`` immediately (choices
-5 / 10 / 15 / 30 / 60 seconds; default 15). Like Brightness, it is not
-persisted across reboot.
+5 / 10 / 15 / 30 / 60 seconds; default 15). Brightness, notification
+level, timeout, and units are written to ``/flash/settings.bin`` when
+Settings is backgrounded if they changed (issue #25). Time and date
+stay on the RTC only.
 
 Widgets are built in :py:meth:`foreground` and released in
 :py:meth:`background` so the always-registered Settings instance does
@@ -134,6 +136,7 @@ class SettingsApp():
         wasp.system.request_event(wasp.EventMask.SWIPE_UPDOWN)
 
     def background(self):
+        wasp.system.save_settings()
         self._drop_widgets()
 
     def touch(self, event):

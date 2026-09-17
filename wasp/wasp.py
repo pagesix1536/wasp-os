@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: LGPL-3.0-or-later
 # Copyright (C) 2020 Daniel Thompson
+# Copyright (C) 2026 Chris Miller
 """Wasp-os system manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -32,6 +33,10 @@ _NOTE_CAP = const(10)
 _NOTE_TITLE = const(40)
 _NOTE_META = const(32)
 _NOTE_BODY = const(192)
+
+# Packed /flash/settings.bin (issue #25): brightness, notify, timeout, units.
+_SETTINGS_PATH = '/flash/settings.bin'
+_TIMEOUT_OPTS = (5, 10, 15, 30, 60)
 
 
 def _trim_notification(msg):
@@ -175,6 +180,63 @@ class Manager():
         self._charging = True
         self._scheduled = False
         self._scheduling = False
+        self._load_settings()
+
+    def _pack_settings(self):
+        """Pack brightness, notify, timeout, units into one byte."""
+        b = self._brightness - 1
+        if b < 0:
+            b = 0
+        elif b > 2:
+            b = 2
+        n = self._notifylevel - 1
+        if n < 0:
+            n = 0
+        elif n > 2:
+            n = 2
+        opts = _TIMEOUT_OPTS
+        v = self.blank_after
+        t = 0
+        for i, o in enumerate(opts):
+            if abs(o - v) < abs(opts[t] - v):
+                t = i
+        u = 1 if self.units == 'Imperial' else 0
+        return (b << 6) | (n << 4) | (t << 1) | u
+
+    def _load_settings(self):
+        """Load /flash/settings.bin into RAM; missing or bad file is ignored."""
+        try:
+            with open(_SETTINGS_PATH, 'rb') as f:
+                raw = f.read(1)
+            if raw:
+                v = raw[0]
+                b = (v >> 6) & 3
+                n = (v >> 4) & 3
+                t = (v >> 1) & 7
+                u = v & 1
+                if b <= 2:
+                    self._brightness = b + 1
+                if n <= 2:
+                    self._notifylevel = n + 1
+                    self._nfylev_ms = self._nfylevels[self._notifylevel - 1]
+                if t < len(_TIMEOUT_OPTS):
+                    self.blank_after = _TIMEOUT_OPTS[t]
+                self.units = 'Imperial' if u else 'Metric'
+        except:
+            pass
+        self._settings_byte = self._pack_settings()
+
+    def save_settings(self):
+        """Write settings.bin if RAM differs from the last load/save."""
+        v = self._pack_settings()
+        if v == self._settings_byte:
+            return
+        try:
+            with open(_SETTINGS_PATH, 'wb') as f:
+                f.write(bytes((v,)))
+            self._settings_byte = v
+        except:
+            pass
 
     def secondary_init(self):
         global free

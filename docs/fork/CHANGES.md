@@ -13,6 +13,7 @@ Concise log of work on this personal PineTime fork since it diverged from upstre
 - **Alarm (issue #12)** — rebuilt edit (weekday/weekend columns, SAV/DEL, 1-minute steps) and ringing (swipe stop/snooze, dead side button, 2-minute auto-stop).
 - **Settings (issue #13)** — four dual-panel pages (Levels / Sleep / Time / Date); US MM-DD-YY on Date; widgets built in `foreground()`, dropped in `background()` to save heap.
 - **Settings Timeout (issue #5)** — adjustable blank timeout (5–60 s) via `blank_after`.
+- **Settings persist (issue #25)** — brightness, notify level, timeout, and units saved to `/flash/settings.bin` (one packed byte) on Settings background if dirty; loaded at `Manager` init. Time/date not stored.
 - **Timer (issue #2)** — spinners only while foregrounded; removed from quick ring (still frozen / Software-enable).
 - **Boot app set (issue #2)** — Heart / Weather / Music no longer `auto_load` (frozen for Software); leaner heap at boot.
 - **Default watch face (issue #1)** — sole face is US 12-hour `clock_us` (am/pm + US date); stock `clock` / `week_clock` not in `wasp.toml`.

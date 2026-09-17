@@ -57,7 +57,7 @@ Details:
 - [CHANGES.md](CHANGES.md) — **concise log** of fork fixes, updates, features, and tooling
 - [tooling.md](tooling.md) — helper scripts, Podman, DFU, wasptool, sim battery screenshots
 - [apps.md](apps.md) — enabled apps, how to add new ones
-- [operations.md](operations.md) — **ops playbook**: `--exec`, OTA, boot/heap gotchas, BLE debug, status-bar battery meter (also summarized in `AGENTS.md`)
+- [operations.md](operations.md) — **ops playbook**: `--exec`, OTA, boot/heap gotchas, Settings persist (`/flash/settings.bin`, issue #25), BLE debug, status-bar battery meter (also summarized in `AGENTS.md`)
 - [raise-to-wake.md](raise-to-wake.md) — raise-to-wake research (deferred); pitfalls if revived (issue #6)
 
 ## Quick start

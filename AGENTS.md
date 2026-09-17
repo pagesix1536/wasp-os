@@ -204,7 +204,7 @@ Before claiming a change is done:
 | `docs/fork/CHANGES.md` | Concise log of fork fixes / features / tooling since diverge |
 | `docs/fork/tooling.md` | Helper scripts: Podman sim, build/flash, bleak DFU |
 | `docs/fork/apps.md` | Enabled apps (`wasp.toml`) + starter for new apps |
-| `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap gotchas, BLE debug, battery meter |
+| `docs/fork/operations.md` | **Ops playbook**: --exec, OTA, boot/heap, Settings persist (#25), BLE debug, battery meter |
 | `docs/fork/raise-to-wake.md` | Raise-to-wake design, INT pitfalls, tuning (issue #6) |
 | `AGENTS.md` | This file — agent/human project constitution |
 | `docs/install.rst` | Build, flash, prerequisites (upstream Sphinx) |
@@ -236,7 +236,7 @@ Owner has multiple PineTimes; **only this one** is the development target unless
 | Item | Value |
 |------|--------|
 | BLE address | Prefer **re-scan** (random; changes with firmware). Was `…:7D` on InfiniTime; **PineDFU** was `…:7E` after reloader |
-| Firmware | **git master build** (`build-pinetime/micropython.zip`, OTA 2026-08-13) — supersedes stock 0.4.1 OS image |
+| Firmware | **git master build** (`build-pinetime/micropython.zip`, OTA includes issue #25 settings persist) — supersedes stock 0.4.1 OS image |
 | Prior OS | InfiniTime 1.15.0 → stock wasp 0.4.1 → current-tree micropython |
 | Bootloader | **wasp-bootloader** (via official `reloader-mcuboot.zip` 0.4.1; not re-flashed on master OTA) |
 | wasptool hint | Re-scan for device name; pass `--device` / MAC. Needs `tools/pynus` submodule |
@@ -276,6 +276,7 @@ Full write-up: [`docs/fork/operations.md`](docs/fork/operations.md). Summary for
 - `auto_load` / `quick_ring` = register at boot (always pay heap). Omit both = frozen but enable via Software when needed.
 - **Step counter** is always quick-ring from core `register_defaults()` (not toml). Settings/Software always launcher.
 - **Settings** (issue #13): four pages (Levels / Sleep / Time / Date); widgets build in `foreground()`, drop in `background()`.
+- **Settings persist (issue #25):** brightness, notify level, timeout, and units in `/flash/settings.bin` (one packed byte). Load in `Manager.__init__`; save from Settings `background()` if dirty. Time/date stay on the RTC. Flashlight must not write this file. Simulator usually has no `/flash` — verify on device.
 - **Timer** (issue #2): frozen only (not quick-ring); enable in Software when wanted. Spinners also build/drop with foreground/background.
 - Compare free heap with Memory app **GC** (not **Now**); current lean baseline ~**11 KB GC** (Timer off the ring) — see [`docs/fork/operations.md`](docs/fork/operations.md).
 

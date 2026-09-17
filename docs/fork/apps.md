@@ -32,7 +32,7 @@ None currently. Heart / Weather / Music / Timer were dropped from boot registrat
 
 System apps **Settings** and **Software** always appear on the launcher.
 
-**Settings** ([issue #13](https://github.com/pagesix1536/wasp-os/issues/13), Timeout from [#5](https://github.com/pagesix1536/wasp-os/issues/5)): four swipe pages —
+**Settings** ([issue #13](https://github.com/pagesix1536/wasp-os/issues/13), Timeout from [#5](https://github.com/pagesix1536/wasp-os/issues/5), persist [#25](https://github.com/pagesix1536/wasp-os/issues/25)): four swipe pages —
 
 | Page | Contents |
 |------|----------|
@@ -41,7 +41,7 @@ System apps **Settings** and **Software** always appear on the launcher.
 | **Time** | HH : MM spinners |
 | **Date** | US **MM - DD - YY** spinners |
 
-Timeout choices: 5 / 10 / 15 / 30 / 60 seconds (default **15**). Takes effect immediately; not persisted across reboot (same as Brightness / Notification Level). Longer values use more battery.
+Timeout choices: 5 / 10 / 15 / 30 / 60 seconds (default **15**). Takes effect immediately. Brightness, notification level, timeout, and units persist in `/flash/settings.bin` when Settings is backgrounded (issue #25). Time and date are RTC-only. Longer timeout values use more battery.
 
 Widgets are built in `foreground()` and dropped in `background()` so the always-registered Settings instance does not keep controls on the heap while unused.
 
