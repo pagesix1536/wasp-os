@@ -16,7 +16,7 @@ Concise log of work on this personal PineTime fork since it diverged from upstre
 - **Settings persist (issue #25)** — brightness, notify level, timeout, and units saved to `/flash/settings.bin` (one packed byte) on Settings background if dirty; loaded at `Manager` init. Time/date not stored.
 - **Timer (issue #2)** — spinners only while foregrounded; removed from quick ring (still frozen / Software-enable).
 - **Boot app set (issue #2)** — Heart / Weather / Music no longer `auto_load` (frozen for Software); leaner heap at boot.
-- **Default watch face (issue #1)** — sole face is US 12-hour `clock_us` (am/pm + US date); stock `clock` / `week_clock` not in `wasp.toml`.
+- **Default watch face (issue #1)** — boot face is US 12-hour `clock_us` (am/pm + US date); stock `clock` / `week_clock` not in `wasp.toml`.
 - **Notifications (issue #11)** — pull-down is a kept list, oldest first; `"n of N"` header; truncated body; swipe down/up walks the list (past last → clear-all, from first → clock); left/right → This / All / Cancel. Gadgetbridge `notify-` no longer drops watch copies.
 - **Notification heap (issue #16, RAM only)** — cap 10, new id drops oldest; store `src`/`title`/`subject`/`body`/`sender` (clipped); drop `tel`/`reply`/`act`/`img`. Pull-down: sans18 `n of N` in `ui`, then `src`/`sender`/title/subject in `mid`; only the body is sans24 `bright`. No flash file.
 
@@ -25,12 +25,14 @@ Concise log of work on this personal PineTime fork since it diverged from upstre
 - **Gadgetbridge battery** — on battery-glyph redraw, watch pushes `t:"status"` (`bat` / `volt` / `chg`) when BLE UART is connected.
 - **Memory app** — heap readout utility (focus on **GC**); enable via Software.
 - **Storage app** — frozen for Software enable (with the leaner boot set).
+- **Gallery + Faces** — frozen only; enable in Software. Faces switches Clock12h and the Beach prototype.
+- **Beach watch face (issue #19, prototype)** — analogue black hands on `gallery/beach` BMP; full-width row-band restore. Not the default face; not a finished product.
 
 ## Tooling & infrastructure
 
 - Fedora **Podman** sim / build helpers (`run-sim-podman.sh`, `build-flash-pinetime.sh`).
 - **Omarchy (Arch/Hyprland) host port** — rootless podman (not sudo Docker), `build-dev-image.sh`, host `python-bleak`/`python-pexpect`, SELinux volume flags only when SELinux is present.
-- **`make check` vs lean `wasp.toml`** — simulator discovery imports only toml watch faces (not unused `week_clock`); smoke tests expect Clock12h / Alarm / Steps; fork-only Memory/Storage skip upstream Sphinx QA like ClockUs.
+- **`make check` vs lean `wasp.toml`** — simulator discovery imports only toml watch faces (not unused `week_clock`); smoke tests expect Clock12h / Alarm / Steps; fork-only Memory/Storage/Beach skip upstream Sphinx QA like ClockUs.
 - **bleak** legacy DFU client for modern BlueZ (replaces flaky gatttool path).
 - GitHub `origin` (`pagesix1536/wasp-os`); dropped personal Gitea remote docs.
 - Disabled fork CI: binary-dist workflow (`main.yml`) and simulator tests (`sim.yml`) — local Podman covers builds/tests.

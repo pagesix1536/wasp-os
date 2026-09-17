@@ -26,8 +26,19 @@ file = 'apps/memory.py'
 [[app]]
 file = 'apps/storage.py'
 
-# Sole watch face for this fork (issue #1). Self-contained — no clock.py dependency.
-# Faces picker (apps/faces.py) is intentionally not enabled; only one face ships.
+# Gallery: frozen only. Enable in Software to preview RGB565 BMPs in gallery/.
+[[app]]
+file = 'apps/gallery.py'
+
+# Watch-face picker: frozen only. Enable in Software to switch Clock12h / Beach.
+[[app]]
+file = 'apps/faces.py'
+
+# Default watch face (issue #1). Self-contained — no clock.py dependency.
 [[watchface]]
 file = 'watch_faces/clock_us.py'
 default = true
+
+# Prototype analogue-on-photo face (issue #19).
+[[watchface]]
+file = 'watch_faces/beach.py'

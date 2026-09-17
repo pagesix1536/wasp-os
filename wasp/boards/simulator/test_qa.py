@@ -7,7 +7,7 @@ from PIL import Image
 # Fork-only apps (docs in docs/fork/); skip upstream screenshot/README/Sphinx checks.
 EXCLUDE = (
     'NotificationApp', 'PagerApp', 'TemplateApp', 'FacesApp', 'ReadMeApp',
-    'ClockUsApp', 'MemoryApp', 'StorageApp',
+    'ClockUsApp', 'MemoryApp', 'StorageApp', 'BeachApp',
 )
 
 def test_screenshot(constructor):

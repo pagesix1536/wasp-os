@@ -86,7 +86,7 @@ Last boot banner before UI. Usually:
 
 ### `WeekClock` needs `Clock` (if re-enabled)
 
-This fork’s default face is sole `clock_us.py` (self-contained). If you re-add stock `WeekClockApp`, it subclasses `ClockApp` (`from apps.user.clock import …`) — freeze **both** `week_clock` and `clock` in `wasp.toml` or boot hangs on `main.py`.
+This fork’s default face is `clock_us.py` (self-contained). A **prototype** analogue-on-photo face (`watch_faces/beach.py`, issue #19) is also frozen; pick it in **Faces** (Software). If you re-add stock `WeekClockApp`, it subclasses `ClockApp` (`from apps.user.clock import …`) — freeze **both** `week_clock` and `clock` in `wasp.toml` or boot hangs on `main.py`.
 
 ### Inverted / washed-out display after a crash
 

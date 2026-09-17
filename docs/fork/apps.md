@@ -29,6 +29,8 @@ None currently. Heart / Weather / Music / Timer were dropped from boot registrat
 | `apps/music_player.py` | Gadgetbridge music controls (metadata flaky) |
 | `apps/memory.py` | Free RAM (Boot/Init/Now/**GC**); prefer `--exec` while iterating |
 | `apps/storage.py` | SPI NOR `/flash` use (issue #8) |
+| `apps/gallery.py` | RGB565 BMP viewer for `gallery/` (wasptool `--binary --upload … --as gallery/name`) |
+| `apps/faces.py` | Watch-face picker (Clock12h / **prototype** Beach). Enable in Software. |
 
 System apps **Settings** and **Software** always appear on the launcher.
 
@@ -51,9 +53,12 @@ Widgets are built in `foreground()` and dropped in `background()` so the always-
 
 | File | Default? |
 |------|----------|
-| `watch_faces/clock_us.py` | **Yes** — US 12h + `Wed, Aug 13` date (issue #1); sole face |
+| `watch_faces/clock_us.py` | **Yes** — US 12h + `Wed, Aug 13` date (issue #1) |
+| `watch_faces/beach.py` | No — **prototype** (issue #19), not a finished face |
 
-Stock `clock.py` / `week_clock.py` are not frozen. The Faces picker (`apps/faces.py`) is also not enabled — with only one face there is nothing to switch.
+Stock `clock.py` / `week_clock.py` are not frozen. Enable **Faces** in Software to switch Clock12h and the Beach prototype.
+
+**Beach prototype:** analogue hour/minute hands (Chrono geometry, black) over RGB565 BMP `gallery/beach`. First paint streams the file line-by-line (panel unmuted). Minute updates restore a padded **full-width row band** covering the old hands, then redraw. No ticks, no status bar, no digital time. Host BMP: `res/beach.bmp` (`bmp:subtype=RGB565`, 240×240); upload with `wasptool --binary --upload res/beach.bmp --as gallery/beach`. Slow on vertical hands (e.g. 6:00). Issue #19 stays open.
 
 Quick on-device test without rebuild:
 

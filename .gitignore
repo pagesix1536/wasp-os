@@ -19,6 +19,7 @@ wasp/appregistry.py
 Morse.txt
 alarms.txt
 settings.bin
+gallery/
 
 # Host BLE venv (optional; Omarchy can use distro python-bleak instead)
 .venv-dfu/
